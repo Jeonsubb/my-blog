@@ -14,8 +14,9 @@ export interface PostData{
   title: string;
   date: string;
   description: string;
-  contentHtml: string;
+  contentHtml?: string;
   thumbnail?: string; // 물음표(?)는 "있을 수도 있고 없을 수도 있다"는 뜻
+  category? :string;
 }
 
 //3. 특정 파일 하나를 읽어오는 함수
@@ -63,7 +64,7 @@ export async function getPostData(id:string):Promise< PostData>{
       //5. 데이터 합치기
       return {
         id,
-        ...(matterResult.data as {title:string;date:string;description:string;thumbnail?:string}),
+        ...(matterResult.data as {title:string;date:string;description:string;thumbnail?:string;category?:string;}),
       };
     });
 

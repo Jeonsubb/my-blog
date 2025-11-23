@@ -3,6 +3,7 @@ title: "블로그 함 만들어보자!"
 date: "2025-11-22"
 description: "컴공 3학년이지만 개발을 하지 않았던 사람의 일지.."
 thumbnail: "/images/test.png"
+category: "Next.js"
 ---
 
 ## 안녕하세요!
