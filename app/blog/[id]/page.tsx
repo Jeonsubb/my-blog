@@ -1,10 +1,27 @@
 // src/app/blog/[id]/page.tsx
 import {getPostData} from "@/lib/posts";
+import { title } from "process";
+import type { Metadata } from "next";
 
 // Props 타입 정의 (id가 문자열로 들어옵니다)
 type Props = {
   params: Promise<{ id: string }>;
 };
+export async function generateMetadata({params}: Props): Promise<Metadata> {
+  const {id} = await params;
+  const post = await getPostData(id);
+
+  return {
+    title: post.title,
+    description: post.description,
+
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      images:post.thumbnail ? [post.thumbnail] : [],
+    },
+  };
+}
 
 // 'async' 키워드가 붙은 것에 주목하세요!
 export default async function BlogPost({ params }: Props) {

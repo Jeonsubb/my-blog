@@ -14,8 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "전동훈의 블로그",
+  title: {
+    template: "%s | 전섭의 기술 블로그",
+    default: "전섭의 기술 블로그",
+  },
   description: "Next.js로 만들어보자",
+  icons:{
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
