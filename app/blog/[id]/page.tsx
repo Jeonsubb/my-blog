@@ -46,7 +46,7 @@ export default async function BlogPost({ params }: Props) {
         {/* 2. dangerouslySetInnerHTML 사용 
            "이건 내가 검증한 안전한 HTML이니까 태그로 변환해서 보여줘!" 라는 뜻입니다.
         */}
-        <div dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+        <div dangerouslySetInnerHTML={{ __html: post.contentHtml || ""}} />
       </article>
     </div>
   );
