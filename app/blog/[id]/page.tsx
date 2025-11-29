@@ -1,6 +1,7 @@
 // src/app/blog/[id]/page.tsx
 import {getPostData} from "@/lib/posts";
 import { title } from "process";
+import CommentSection from "@/components/CommentSection";
 import type { Metadata } from "next";
 
 // Props 타입 정의 (id가 문자열로 들어옵니다)
@@ -48,6 +49,11 @@ export default async function BlogPost({ params }: Props) {
         */}
         <div dangerouslySetInnerHTML={{ __html: post.contentHtml || ""}} />
       </article>
+      
+      <article className="prose lg:prose-xl">
+        <div dangerouslySetInnerHTML={{ __html: post.contentHtml || "" }} />
+      </article>
+      <CommentSection postId={id} />
     </div>
   );
 }
