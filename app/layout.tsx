@@ -14,6 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  verification: {
+google: "wz1Mb9BrOq-QdwDSWiXjFfw2uQFeIddSuBkEEf9iYfE"
+  },
   title: {
     template: "%s | 전섭의 기술 블로그",
     default: "전섭의 기술 블로그",
