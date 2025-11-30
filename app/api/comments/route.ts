@@ -92,3 +92,37 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ success: true });
 }
+
+// 👇 4. 댓글 수정 (PATCH 요청)
+export async function PATCH(request: Request) {
+  const body = await request.json();
+  const { commentId, password, newContent } = body;
+
+  // 1. 유효성 검사
+  if (!commentId || !password || !newContent) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  }
+
+  // 2. 비밀번호 검증
+  const { data: comment } = await supabase
+    .from('comments')
+    .select('password')
+    .eq('id', commentId)
+    .single();
+
+  if (!comment || comment.password !== password) {
+    return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 403 });
+  }
+
+  // 3. 업데이트 실행 (content 컬럼을 새로운 내용으로 변경)
+  const { error } = await supabase
+    .from('comments')
+    .update({ content: newContent }) // 👈 여기가 핵심!
+    .eq('id', commentId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

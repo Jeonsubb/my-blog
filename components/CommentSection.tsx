@@ -13,6 +13,9 @@ type Comment = {
 export default function CommentSection({ postId }: { postId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [form, setForm] = useState({ content: "", username: "", password: "" });
+  // 👇 수정 모드 관리를 위한 state 추가
+  const [editingId, setEditingId] = useState<number | null>(null); // 지금 수정 중인 댓글 ID
+  const [editContent, setEditContent] = useState(""); // 수정 중인 내용
 
   // 1. 댓글 불러오기 함수
   const fetchComments = async () => {
@@ -76,6 +79,34 @@ export default function CommentSection({ postId }: { postId: string }) {
     }
   };
 
+  // 5. 수정 모드 켜기
+  const startEdit = (comment: Comment) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content); // 기존 내용을 입력창에 채워둠
+  };
+
+  // 6. 수정 저장 요청
+  const handleUpdate = async (commentId: number) => {
+    const password = window.prompt("수정을 위해 비밀번호를 입력하세요");
+    if (!password) return;
+
+    const res = await fetch("/api/comments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, password, newContent: editContent }),
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      alert("댓글이 수정되었습니다.");
+      setEditingId(null); // 수정 모드 끄기
+      fetchComments(); // 목록 새로고침
+    } else {
+      alert(result.error);
+    }
+  };
+
 
   return (
     <div className="mt-16 border-t pt-8">
@@ -125,19 +156,52 @@ export default function CommentSection({ postId }: { postId: string }) {
               </span>
             </div>
 
-              {/* 👇 삭제 버튼 (평소엔 흐리게, 마우스 올리면 진하게) */}
-          <button
-            onClick={() => handleDelete(comment.id)}
-            className="text-gray-300 hover:text-red-500 text-sm transition"
+            {/* 버튼 그룹 */}
+      <div className="flex gap-2 text-sm text-gray-300">
+        {/* 수정 중이 아닐 때만 수정/삭제 버튼 보이기 */}
+        {editingId !== comment.id && (
+          <>
+            <button onClick={() => startEdit(comment)} className="hover:text-blue-500 transition">
+              수정
+            </button>
+            <button onClick={() => handleDelete(comment.id)} className="hover:text-red-500 transition">
+              삭제
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+    
+       {/* 👇 여기가 핵심! 수정 모드에 따라 화면이 바뀜 */}
+    {editingId === comment.id ? (
+      // 수정 모드일 때: 입력창과 저장/취소 버튼
+      <div className="mt-2">
+        <textarea
+          className="w-full border p-2 rounded mb-2"
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+        />
+        <div className="flex gap-2 justify-end">
+          <button 
+            onClick={() => setEditingId(null)} 
+            className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
           >
-            삭제
+            취소
+          </button>
+          <button 
+            onClick={() => handleUpdate(comment.id)} 
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            저장
           </button>
         </div>
-
-            
-            <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
-          </div>
-        ))}
+      </div>
+    ) : (
+      // 평소 상태: 그냥 글자 보여줌
+      <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+    )}
+  </div>
+))}
         {comments.length === 0 && (
           <p className="text-gray-400 text-center">아직 댓글이 없습니다. 첫 번째 주인공이 되어보세요!</p>
         )}
