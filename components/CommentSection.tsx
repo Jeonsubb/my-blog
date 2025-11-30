@@ -52,6 +52,31 @@ export default function CommentSection({ postId }: { postId: string }) {
     }
   };
 
+  // 4. 댓글 삭제 함수
+  const handleDelete = async (commentId: number) => {
+    // 브라우저 기본 팝업으로 비밀번호 입력받기
+    const password = window.prompt("댓글 삭제를 위해 비밀번호를 입력하세요");
+    
+    if (!password) return; // 취소 누르면 종료
+
+    // 삭제 API 호출
+    const res = await fetch("/api/comments", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, password }),
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      alert("댓글이 삭제되었습니다.");
+      fetchComments(); // 목록 새로고침
+    } else {
+      alert(result.error); // "비밀번호가 틀렸습니다" 등 에러 메시지 출력
+    }
+  };
+
+
   return (
     <div className="mt-16 border-t pt-8">
       <h3 className="text-2xl font-bold mb-6">댓글 ({comments.length})</h3>
@@ -91,13 +116,25 @@ export default function CommentSection({ postId }: { postId: string }) {
       {/* 댓글 목록 표시 */}
       <div className="space-y-6">
         {comments.map((comment) => (
-          <div key={comment.id} className="border-b pb-4">
+          <div key={comment.id} className="border-b pb-4 group">
             <div className="flex justify-between items-center mb-2">
+              <div>
               <span className="font-bold">{comment.username}</span>
               <span className="text-gray-400 text-sm">
                 {new Date(comment.created_at).toLocaleString()}
               </span>
             </div>
+
+              {/* 👇 삭제 버튼 (평소엔 흐리게, 마우스 올리면 진하게) */}
+          <button
+            onClick={() => handleDelete(comment.id)}
+            className="text-gray-300 hover:text-red-500 text-sm transition"
+          >
+            삭제
+          </button>
+        </div>
+
+            
             <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
           </div>
         ))}

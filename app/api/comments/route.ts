@@ -57,3 +57,38 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ success: true, data });
 }
+
+// 👇 3. 댓글 삭제 (DELETE 요청)
+export async function DELETE(request: Request) {
+  const body = await request.json();
+  const { commentId, password } = body;
+
+  // 1. 유효성 검사
+  if (!commentId || !password) {
+    return NextResponse.json({ error: 'ID and password required' }, { status: 400 });
+  }
+
+  // 2. 비밀번호 검증 (DB에서 해당 댓글의 진짜 비번 가져오기)
+  const { data: comment } = await supabase
+    .from('comments')
+    .select('password')
+    .eq('id', commentId)
+    .single();
+
+  // 댓글이 없거나, 비번이 틀리면 에러
+  if (!comment || comment.password !== password) {
+    return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 403 });
+  }
+
+  // 3. 진짜 삭제 실행
+  const { error } = await supabase
+    .from('comments')
+    .delete()
+    .eq('id', commentId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
