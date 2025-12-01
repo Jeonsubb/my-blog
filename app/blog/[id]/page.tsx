@@ -3,6 +3,8 @@ import {getPostData} from "@/lib/posts";
 import { title } from "process";
 import CommentSection from "@/components/CommentSection";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
 
 // Props 타입 정의 (id가 문자열로 들어옵니다)
 type Props = {
@@ -11,6 +13,8 @@ type Props = {
 export async function generateMetadata({params}: Props): Promise<Metadata> {
   const {id} = await params;
   const post = await getPostData(id);
+
+  if (!post) return { title: "글을 찾을 수 없음" };
 
   return {
     title: post.title,
@@ -32,6 +36,11 @@ export default async function BlogPost({ params }: Props) {
   //2. 방금 만든 함수로 실제 마크다운 파일 읽어오기
   const post = await getPostData(id);
 
+  if (!post) {
+    notFound();
+  }
+
+
   return (
     <div className="p-24">
       {/* 뒤로가기 버튼 */}
@@ -40,7 +49,7 @@ export default async function BlogPost({ params }: Props) {
         &larr; 목록으로 돌아가기
       </a>
       <h1 className="text-4xl font-bold mb-2">{post.title}</h1>
-      <p className="text-gray-500">{post.date}</p>
+      <p className="text-gray-500">{new Date(post.created_at).toLocaleDateString()}</p>
       </div>
 
      <article className="prose lg:prose-xl">
@@ -49,11 +58,9 @@ export default async function BlogPost({ params }: Props) {
         */}
         <div dangerouslySetInnerHTML={{ __html: post.contentHtml || ""}} />
       </article>
-      
-      <article className="prose lg:prose-xl">
-        <div dangerouslySetInnerHTML={{ __html: post.contentHtml || "" }} />
-      </article>
-      <CommentSection postId={id} />
+
+   {/* 댓글창 (post.id는 이제 숫자지만, CommentSection은 문자열을 원할 수도 있음) */}
+      <CommentSection postId={post.slug} />
     </div>
   );
 }

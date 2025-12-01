@@ -1,13 +1,13 @@
 // src/app/blog/page.tsx
 import Link from "next/link";
 // 👇 방금 분리한 함수(도구)를 가져옵니다.
-import { getSortedPostData } from "@/lib/posts"; 
+import { getSortedPostsData } from "@/lib/posts"; 
 
 import FilterablePostList from "@/components/FilterablePostList"; // 방금 만든 부품
 
-export default function Blog() {
+export default async function Blog() {
   // 1. 서버에서 데이터를 가져옵니다.
-  const allPostsData = getSortedPostData();
+  const allPostsData = await getSortedPostsData();
 
   return (
     <div className="p-24">

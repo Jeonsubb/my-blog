@@ -1,21 +1,22 @@
 // src/app/sitemap.ts
 import { MetadataRoute } from 'next'
-import { getSortedPostData } from '@/lib/posts'
+import { getSortedPostsData } from '@/lib/posts'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  // 1. 내 블로그의 기본 주소 (이걸 꼭 동훈님 주소로 바꾸세요!)
+// 👇 1. async를 붙여야 합니다! (DB 조회는 비동기니까요)
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://my-blog-xi-flame.vercel.app'
 
-  // 2. 모든 글 데이터를 가져옴
-  const allPosts = getSortedPostData()
+  // 👇 2. await를 붙여서 데이터를 가져옵니다.
+  const allPosts = await getSortedPostsData()
 
-  // 3. 글 목록을 사이트맵 형식으로 변환
   const posts = allPosts.map((post) => ({
-    url: `${baseUrl}/blog/${post.id}`,
-    lastModified: new Date(post.date),
+    // 👇 3. id 대신 slug를 써야 합니다.
+    url: `${baseUrl}/blog/${post.slug}`,
+    
+    // 👇 4. date 대신 created_at을 써야 합니다.
+    lastModified: new Date(post.created_at),
   }))
 
-  // 4. 기본 페이지(홈, 블로그 목록)와 합쳐서 반환
   return [
     {
       url: baseUrl,

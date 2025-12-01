@@ -44,7 +44,7 @@ export default function FilterablePostList({ posts }: Props) {
       {/* 필터링된 글 목록 보여주기 (아까 page.tsx에 있던 디자인 재사용) */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredPosts.map((post) => (
-          <Link href={`/blog/${post.id}`} key={post.id} className="block group">
+          <Link href={`/blog/${post.slug}`} key={post.id} className="block group">
             <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition bg-white h-full flex flex-col">
               {post.thumbnail ? (
                 <div className="w-full h-48 relative overflow-hidden">
@@ -68,7 +68,7 @@ export default function FilterablePostList({ posts }: Props) {
                 <p className="text-gray-600 mb-4 line-clamp-2 text-sm flex-grow">
                   {post.description}
                 </p>
-                <p className="text-gray-400 text-xs mt-auto">{post.date}</p>
+                <p className="text-gray-400 text-xs mt-auto">{post.created_at}</p>
               </div>
             </div>
           </Link>
