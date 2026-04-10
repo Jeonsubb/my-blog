@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar"; // Navbar 불러오기
+import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
+import { siteConfig } from "@/lib/site";
 
-const geistSans = Geist({
+const bodyFont = Geist({
   variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const displayFont = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -14,15 +21,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   verification: {
-google: "wz1Mb9BrOq-QdwDSWiXjFfw2uQFeIddSuBkEEf9iYfE"
+    google: "wz1Mb9BrOq-QdwDSWiXjFfw2uQFeIddSuBkEEf9iYfE",
   },
   title: {
-    template: "%s | 전섭의 기술 블로그",
-    default: "전섭의 기술 블로그",
+    template: `%s | ${siteConfig.name}`,
+    default: siteConfig.name,
   },
-  description: "Next.js로 만들어보자",
-  icons:{
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.author }],
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: siteConfig.url,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+  },
+  icons: {
     icon: "/favicon.ico",
   },
 };
@@ -33,12 +56,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${bodyFont.variable} ${displayFont.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <Navbar/>
-        {children}
+        <div className="relative min-h-screen">
+          <Navbar />
+          <main>{children}</main>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );

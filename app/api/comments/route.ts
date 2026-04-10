@@ -1,127 +1,171 @@
-// src/app/api/comments/route.ts
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase'; // 어제 만든 Supabase 연결 도구
+import { createHash } from "node:crypto";
+import { NextResponse } from "next/server";
+import { getSupabaseClient } from "@/lib/supabase";
 
-// 1. 댓글 조회 (GET 요청)
-// 사용법: /api/comments?postId=nextjs-start
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const postId = searchParams.get('postId');
+function errorResponse(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
 
-  // 에러 처리: postId가 없으면 "뭘 달라는 거야?" 하고 거절
-  if (!postId) {
-    return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
+function normalizeText(value: unknown, maxLength: number) {
+  if (typeof value !== "string") {
+    return "";
   }
 
-  // Supabase에 쿼리 날리기 (SELECT * FROM comments WHERE post_id = ...)
+  return value.trim().slice(0, maxLength);
+}
+
+function parseCommentId(value: unknown) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function hashCommentPassword(password: string) {
+  return createHash("sha256").update(password).digest("hex");
+}
+
+function isPasswordValid(storedPassword: string, inputPassword: string) {
+  const hashedInput = hashCommentPassword(inputPassword);
+  return storedPassword === inputPassword || storedPassword === hashedInput;
+}
+
+export async function GET(request: Request) {
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    return NextResponse.json([]);
+  }
+
+  const { searchParams } = new URL(request.url);
+  const postId = searchParams.get("postId");
+
+  if (!postId) {
+    return errorResponse("Post ID is required", 400);
+  }
+
   const { data, error } = await supabase
-    .from('comments')
-    .select('*')
-    .eq('post_id', postId)
-    .order('created_at', { ascending: false }); // 최신순 정렬
+    .from("comments")
+    .select("id, content, username, created_at")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return errorResponse(error.message, 500);
   }
 
   return NextResponse.json(data);
 }
 
-// 2. 댓글 작성 (POST 요청)
 export async function POST(request: Request) {
-  // 프론트에서 보낸 데이터(본문, 작성자, 비번 등)를 받음
-  const body = await request.json();
-  const { postId, content, username, password } = body;
+  const supabase = getSupabaseClient();
 
-  // 유효성 검사: 하나라도 빠지면 안 됨
-  if (!postId || !content || !username || !password) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  if (!supabase) {
+    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
   }
 
-  // Supabase에 저장 (INSERT INTO comments ...)
+  const body = await request.json();
+  const postId = normalizeText(body.postId, 120);
+  const content = normalizeText(body.content, 1200);
+  const username = normalizeText(body.username, 40);
+  const password = normalizeText(body.password, 120);
+
+  if (!postId || !content || !username || !password) {
+    return errorResponse("모든 항목을 입력해주세요.", 400);
+  }
+
   const { data, error } = await supabase
-    .from('comments')
+    .from("comments")
     .insert([
       {
         post_id: postId,
         content,
         username,
-        password, // 실무에서는 암호화해야 하지만, 지금은 연습이니 그냥 넣습니다.
+        password: hashCommentPassword(password),
       },
     ])
-    .select();
+    .select("id, content, username, created_at");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return errorResponse(error.message, 500);
   }
 
   return NextResponse.json({ success: true, data });
 }
 
-// 👇 3. 댓글 삭제 (DELETE 요청)
 export async function DELETE(request: Request) {
-  const body = await request.json();
-  const { commentId, password } = body;
+  const supabase = getSupabaseClient();
 
-  // 1. 유효성 검사
-  if (!commentId || !password) {
-    return NextResponse.json({ error: 'ID and password required' }, { status: 400 });
+  if (!supabase) {
+    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
   }
 
-  // 2. 비밀번호 검증 (DB에서 해당 댓글의 진짜 비번 가져오기)
-  const { data: comment } = await supabase
-    .from('comments')
-    .select('password')
-    .eq('id', commentId)
+  const body = await request.json();
+  const commentId = parseCommentId(body.commentId);
+  const password = normalizeText(body.password, 120);
+
+  if (!commentId || !password) {
+    return errorResponse("삭제할 댓글과 비밀번호가 필요합니다.", 400);
+  }
+
+  const { data: comment, error: commentError } = await supabase
+    .from("comments")
+    .select("password")
+    .eq("id", commentId)
     .single();
 
-  // 댓글이 없거나, 비번이 틀리면 에러
-  if (!comment || comment.password !== password) {
-    return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 403 });
+  if (commentError || !comment) {
+    return errorResponse("댓글을 찾을 수 없습니다.", 404);
   }
 
-  // 3. 진짜 삭제 실행
-  const { error } = await supabase
-    .from('comments')
-    .delete()
-    .eq('id', commentId);
+  if (!isPasswordValid(comment.password, password)) {
+    return errorResponse("비밀번호가 올바르지 않습니다.", 403);
+  }
+
+  const { error } = await supabase.from("comments").delete().eq("id", commentId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return errorResponse(error.message, 500);
   }
 
   return NextResponse.json({ success: true });
 }
 
-// 👇 4. 댓글 수정 (PATCH 요청)
 export async function PATCH(request: Request) {
-  const body = await request.json();
-  const { commentId, password, newContent } = body;
+  const supabase = getSupabaseClient();
 
-  // 1. 유효성 검사
-  if (!commentId || !password || !newContent) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  if (!supabase) {
+    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
   }
 
-  // 2. 비밀번호 검증
-  const { data: comment } = await supabase
-    .from('comments')
-    .select('password')
-    .eq('id', commentId)
+  const body = await request.json();
+  const commentId = parseCommentId(body.commentId);
+  const password = normalizeText(body.password, 120);
+  const newContent = normalizeText(body.newContent, 1200);
+
+  if (!commentId || !password || !newContent) {
+    return errorResponse("수정 내용과 비밀번호를 모두 입력해주세요.", 400);
+  }
+
+  const { data: comment, error: commentError } = await supabase
+    .from("comments")
+    .select("password")
+    .eq("id", commentId)
     .single();
 
-  if (!comment || comment.password !== password) {
-    return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 403 });
+  if (commentError || !comment) {
+    return errorResponse("댓글을 찾을 수 없습니다.", 404);
   }
 
-  // 3. 업데이트 실행 (content 컬럼을 새로운 내용으로 변경)
+  if (!isPasswordValid(comment.password, password)) {
+    return errorResponse("비밀번호가 올바르지 않습니다.", 403);
+  }
+
   const { error } = await supabase
-    .from('comments')
-    .update({ content: newContent }) // 👈 여기가 핵심!
-    .eq('id', commentId);
+    .from("comments")
+    .update({ content: newContent })
+    .eq("id", commentId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return errorResponse(error.message, 500);
   }
 
   return NextResponse.json({ success: true });

@@ -1,78 +1,149 @@
-// src/components/FilterablePostList.tsx
-"use client"; // 👈 중요! "이건 움직이는(Client) 부품이야"라고 선언
+"use client";
 
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import Link from "next/link";
-import { PostData } from "@/lib/posts"; // 타입 가져오기
+import { PostData } from "@/lib/posts";
+import { formatShortDate } from "@/lib/site";
 
 type Props = {
-  posts: PostData[]; // 부모에게서 글 목록을 통째로 받습니다.
+  posts: PostData[];
 };
 
 export default function FilterablePostList({ posts }: Props) {
-  // 1. 상태 관리: 현재 선택된 카테고리 (기본값: 'All')
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
 
-  // 2. 모든 글에서 카테고리만 뽑아내기 (중복 제거)
-  const categories = ["All", ...new Set(posts.map((post) => post.category || "Uncategorized"))];
+  const categories = [
+    "All",
+    ...new Set(posts.map((post) => post.category || "Uncategorized")),
+  ];
 
-  // 3. 선택된 카테고리에 맞는 글만 걸러내기
-  const filteredPosts =
-    selectedCategory === "All"
-      ? posts
-      : posts.filter((post) => post.category === selectedCategory);
+  const filteredPosts = posts.filter((post) => {
+    const matchesCategory =
+      selectedCategory === "All" || post.category === selectedCategory;
+    const searchableText = [
+      post.title,
+      post.description,
+      post.category || "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    const matchesQuery = deferredQuery.length === 0 || searchableText.includes(deferredQuery);
+
+    return matchesCategory && matchesQuery;
+  });
 
   return (
-    <section>
-      {/* 카테고리 버튼 목록 */}
-      <div className="flex gap-2 mb-8 flex-wrap">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              selectedCategory === category
-                ? "bg-blue-600 text-white" // 선택됨: 파란색
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200" // 안 선택됨: 회색
-            }`}
-          >
-            {category}
-          </button>
-        ))}
+    <section className="space-y-8">
+      <div className="rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-[0_18px_40px_rgba(25,33,50,0.06)] backdrop-blur">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--accent)]">
+              Explore posts
+            </p>
+            <h2 className="font-display text-2xl font-bold tracking-[-0.04em]">
+              카테고리와 키워드로 빠르게 탐색하기
+            </h2>
+          </div>
+
+          <label className="block w-full max-w-md">
+            <span className="mb-2 block text-sm font-medium text-[color:var(--muted)]">
+              Search
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Next.js, Supabase, SEO..."
+              className="w-full rounded-2xl border border-[color:var(--border)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-[color:var(--accent)] focus:bg-white"
+            />
+          </label>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                selectedCategory === category
+                  ? "bg-[color:var(--foreground)] text-white"
+                  : "bg-white/80 text-[color:var(--muted)] hover:bg-white hover:text-[color:var(--foreground)]"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* 필터링된 글 목록 보여주기 (아까 page.tsx에 있던 디자인 재사용) */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredPosts.map((post) => (
-          <Link href={`/blog/${post.slug}`} key={post.id} className="block group">
-            <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition bg-white h-full flex flex-col">
+          <Link
+            href={`/blog/${post.slug}`}
+            key={post.id}
+            className="group block h-full"
+          >
+            <article className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface-strong)] shadow-[0_16px_40px_rgba(25,33,50,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_56px_rgba(25,33,50,0.12)]">
               {post.thumbnail ? (
-                <div className="w-full h-48 relative overflow-hidden">
+                <div className="relative h-56 overflow-hidden">
                   <img
                     src={post.thumbnail}
                     alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(25,33,50,0.46)] via-transparent to-transparent" />
                 </div>
               ) : (
-                <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">
-                  No Image
+                <div className="flex h-56 items-center justify-center bg-[linear-gradient(135deg,rgba(15,118,110,0.12),rgba(195,93,56,0.16))]">
+                  <span className="font-display text-lg font-semibold tracking-[-0.03em] text-[color:var(--foreground)]">
+                    {post.category || "Article"}
+                  </span>
                 </div>
               )}
-              <div className="p-4 flex flex-col flex-grow">
-                {/* 카테고리 태그 표시 */}
-                <span className="text-xs font-bold text-blue-500 mb-1">{post.category}</span>
-                <h2 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-blue-600 transition">
+
+              <div className="flex flex-1 flex-col p-6">
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--muted)]">
+                  <span>{post.category || "General"}</span>
+                  <span>{post.readingTimeMinutes} min read</span>
+                </div>
+
+                <h3 className="font-display text-2xl font-bold tracking-[-0.04em] text-[color:var(--foreground)] transition group-hover:text-[color:var(--accent)]">
                   {post.title}
-                </h2>
-                <p className="text-gray-600 mb-4 line-clamp-2 text-sm flex-grow">
-                  {post.description}
+                </h3>
+
+                <p className="mt-3 flex-1 text-sm leading-6 text-[color:var(--muted)]">
+                  {post.description || "이 글의 핵심 내용을 곧 정리해서 채워 넣을 예정입니다."}
                 </p>
-                <p className="text-gray-400 text-xs mt-auto">{post.created_at}</p>
+
+                <div className="mt-6 flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--muted)]">
+                    {formatShortDate(post.created_at)}
+                  </span>
+                  <span className="font-medium text-[color:var(--accent)]">
+                    Read article
+                  </span>
+                </div>
               </div>
-            </div>
+            </article>
           </Link>
         ))}
+
+        {filteredPosts.length === 0 && (
+          <div className="rounded-[2rem] border border-dashed border-[color:var(--border)] bg-white/60 p-10 text-center md:col-span-2 xl:col-span-3">
+            <p className="font-display text-2xl font-bold tracking-[-0.04em]">
+              {posts.length === 0
+                ? "아직 공개된 글이 없습니다"
+                : "조건에 맞는 글을 찾지 못했습니다"}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">
+              {posts.length === 0
+                ? "Supabase 데이터를 연결하거나 첫 글을 발행하면 이 공간이 채워집니다."
+                : "검색어를 줄이거나 다른 카테고리를 선택해 보세요."}
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

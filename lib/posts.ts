@@ -1,30 +1,102 @@
-// src/lib/posts.ts
-import { remark } from 'remark';
-import html from 'remark-html';
-import { supabase } from '@/lib/supabase'; // DB 연결 도구
+import { remark } from "remark";
+import html from "remark-html";
+import {
+  getPostData as getFallbackPostData,
+  getSortedPostData as getFallbackPostsData,
+} from "@/lib/posts_file";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getPlainTextExcerpt, getReadingTimeMinutes } from "@/lib/site";
 
-// 1. 타입 정의 (DB 컬럼에 맞게 수정)
-export interface PostData {
-  id: number;           // DB ID는 숫자입니다 (bigint)
-  slug: string;         // URL용 ID (문자열)
+type SupabasePostRecord = {
+  id: number | string;
+  slug: string;
   title: string;
-  created_at: string;   // DB 컬럼명 (date -> created_at)
-  description?: string;
-  contentHtml?: string; // HTML로 변환된 본문
-  thumbnail?: string;
-  category?: string;
-  content?: string;     // 원본 마크다운 (수정할 때 필요)
+  content: string;
+  description: string | null;
+  thumbnail: string | null;
+  category: string | null;
+  created_at: string;
+};
+
+export interface PostData {
+  id: number | string;
+  slug: string;
+  title: string;
+  created_at: string;
+  description: string;
+  thumbnail?: string | null;
+  category?: string | null;
+  content?: string;
+  contentHtml?: string;
+  readingTimeMinutes: number;
 }
 
-// ============================================================
-// 함수 1: 상세 페이지용 (특정 글 하나 가져오기 + HTML 변환)
-// ============================================================
+function mapSupabasePost(post: SupabasePostRecord, contentHtml?: string): PostData {
+  return {
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    created_at: post.created_at,
+    description: post.description || getPlainTextExcerpt(post.content),
+    thumbnail: post.thumbnail,
+    category: post.category || "General",
+    content: post.content,
+    contentHtml,
+    readingTimeMinutes: getReadingTimeMinutes(post.content),
+  };
+}
+
+function mapFallbackSummaryPost(post: {
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+  thumbnail?: string;
+  category?: string;
+}): PostData {
+  return {
+    id: post.id,
+    slug: post.id,
+    title: post.title,
+    created_at: post.date,
+    description: post.description,
+    thumbnail: post.thumbnail,
+    category: post.category || "General",
+    readingTimeMinutes: 1,
+  };
+}
+
+export function getPostSourceLabel() {
+  return isSupabaseConfigured ? "Supabase Live Data" : "Local Markdown Fallback";
+}
+
 export async function getPostData(slug: string): Promise<PostData | null> {
-  // 1. DB에서 slug로 글 찾기
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    try {
+      const fallbackPost = await getFallbackPostData(slug);
+
+      return {
+        id: fallbackPost.id,
+        slug: fallbackPost.id,
+        title: fallbackPost.title,
+        created_at: fallbackPost.date,
+        description: fallbackPost.description,
+        thumbnail: fallbackPost.thumbnail,
+        category: fallbackPost.category || "General",
+        contentHtml: fallbackPost.contentHtml,
+        readingTimeMinutes: getReadingTimeMinutes(fallbackPost.contentHtml || ""),
+      };
+    } catch {
+      return null;
+    }
+  }
+
   const { data: post, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('slug', slug)
+    .from("posts")
+    .select("id, slug, title, content, description, thumbnail, category, created_at")
+    .eq("slug", slug)
     .single();
 
   if (error || !post) {
@@ -32,34 +104,27 @@ export async function getPostData(slug: string): Promise<PostData | null> {
     return null;
   }
 
-  // 2. 마크다운(post.content)을 HTML로 변환
-  // (DB에는 원본 마크다운만 있으니까요!)
-  const processedContent = await remark()
-    .use(html)
-    .process(post.content);
-  
-  const contentHtml = processedContent.toString();
+  const processedContent = await remark().use(html).process(post.content);
 
-  return {
-    ...post,
-    contentHtml, // 변환된 HTML 추가
-  };
+  return mapSupabasePost(post, processedContent.toString());
 }
 
-// ============================================================
-// 함수 2: 목록 페이지용 (모든 글 가져오기)
-// ============================================================
 export async function getSortedPostsData(): Promise<PostData[]> {
-  // 1. DB에서 모든 글 가져오기 (최신순 정렬)
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    return getFallbackPostsData().map(mapFallbackSummaryPost);
+  }
+
   const { data: posts, error } = await supabase
-    .from('posts')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("posts")
+    .select("id, slug, title, content, description, thumbnail, category, created_at")
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("목록 조회 실패:", error);
-    return [];
+    return getFallbackPostsData().map(mapFallbackSummaryPost);
   }
 
-  return posts as PostData[];
+  return (posts as SupabasePostRecord[]).map((post) => mapSupabasePost(post));
 }

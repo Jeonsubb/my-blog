@@ -1,28 +1,108 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* 테마 설정 (기존 코드 유지) */
 @theme {
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-space-grotesk);
   --font-mono: var(--font-geist-mono);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6efe5;
+  --foreground: #192132;
+  --muted: #677284;
+  --surface: rgba(255, 250, 243, 0.78);
+  --surface-strong: #fffaf3;
+  --border: rgba(25, 33, 50, 0.12);
+  --accent: #0f766e;
+  --accent-strong: #c35d38;
 }
 
+* {
+  box-sizing: border-box;
+}
 
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(195, 93, 56, 0.12), transparent 22%),
+    linear-gradient(180deg, #fffaf3 0%, #f6efe5 48%, #f8f1e7 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(25, 33, 50, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25, 33, 50, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 92%);
+  z-index: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.22);
+  color: var(--foreground);
+}
+
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: #111827;
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: #111827;
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: rgba(15, 118, 110, 0.7);
+  --tw-prose-quotes: #243041;
+  --tw-prose-quote-borders: rgba(15, 118, 110, 0.22);
+  --tw-prose-code: #0f172a;
+  --tw-prose-pre-code: #e5eef0;
+  --tw-prose-pre-bg: #16212f;
+  --tw-prose-th-borders: rgba(25, 33, 50, 0.12);
+  --tw-prose-td-borders: rgba(25, 33, 50, 0.1);
+}
+
+.prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.prose :where(img):not(:where([class~="not-prose"] *)) {
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(229, 238, 240, 0.12);
+}
+
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  border-left-width: 3px;
+  background: rgba(255, 250, 243, 0.7);
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 1rem 1rem 0;
 }
