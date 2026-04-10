@@ -1,9 +1,5 @@
 import { remark } from "remark";
 import html from "remark-html";
-import {
-  getPostData as getFallbackPostData,
-  getSortedPostData as getFallbackPostsData,
-} from "@/lib/posts_file";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlainTextExcerpt, getReadingTimeMinutes } from "@/lib/site";
 
@@ -46,51 +42,15 @@ function mapSupabasePost(post: SupabasePostRecord, contentHtml?: string): PostDa
   };
 }
 
-function mapFallbackSummaryPost(post: {
-  id: string;
-  title: string;
-  date: string;
-  description: string;
-  thumbnail?: string;
-  category?: string;
-}): PostData {
-  return {
-    id: post.id,
-    slug: post.id,
-    title: post.title,
-    created_at: post.date,
-    description: post.description,
-    thumbnail: post.thumbnail,
-    category: post.category || "General",
-    readingTimeMinutes: 1,
-  };
-}
-
 export function getPostSourceLabel() {
-  return isSupabaseConfigured ? "Supabase Live Data" : "Local Markdown Fallback";
+  return isSupabaseConfigured ? "Supabase Live Data" : "Supabase Environment Missing";
 }
 
 export async function getPostData(slug: string): Promise<PostData | null> {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
-    try {
-      const fallbackPost = await getFallbackPostData(slug);
-
-      return {
-        id: fallbackPost.id,
-        slug: fallbackPost.id,
-        title: fallbackPost.title,
-        created_at: fallbackPost.date,
-        description: fallbackPost.description,
-        thumbnail: fallbackPost.thumbnail,
-        category: fallbackPost.category || "General",
-        contentHtml: fallbackPost.contentHtml,
-        readingTimeMinutes: getReadingTimeMinutes(fallbackPost.contentHtml || ""),
-      };
-    } catch {
-      return null;
-    }
+    return null;
   }
 
   const { data: post, error } = await supabase
@@ -113,7 +73,7 @@ export async function getSortedPostsData(): Promise<PostData[]> {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
-    return getFallbackPostsData().map(mapFallbackSummaryPost);
+    return [];
   }
 
   const { data: posts, error } = await supabase
@@ -123,7 +83,7 @@ export async function getSortedPostsData(): Promise<PostData[]> {
 
   if (error) {
     console.error("목록 조회 실패:", error);
-    return getFallbackPostsData().map(mapFallbackSummaryPost);
+    return [];
   }
 
   return (posts as SupabasePostRecord[]).map((post) => mapSupabasePost(post));

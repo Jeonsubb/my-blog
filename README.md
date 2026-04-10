@@ -12,7 +12,6 @@ Next.js와 Supabase를 기반으로 만든 에디토리얼 블로그 플랫폼�
 - 동적 메타데이터, `sitemap.xml`, `robots.txt`
 - 카테고리 필터 + 검색이 가능한 글 목록
 - 포트폴리오 설명력을 높이는 About / Editor Lab 화면
-- Supabase 환경 변수가 없을 때도 로컬 마크다운으로 미리보기 가능한 fallback
 
 ## 기술 스택
 
@@ -41,7 +40,7 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-환경 변수가 없으면 게시글은 `posts/` 폴더의 로컬 마크다운 데이터를 fallback으로 사용하고, 댓글 API는 비활성화됩니다.
+환경 변수가 없으면 게시글과 댓글 기능은 비어 있는 상태로 동작합니다.
 
 ## 주요 경로
 
