@@ -59,7 +59,7 @@ export default async function BlogPost({ params }: Props) {
       <section className="border-b border-[color:var(--border)] pb-8">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-2 text-sm text-[color:var(--muted)] hover:text-black"
+          className="inline-flex items-center gap-2 text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
         >
           <span>&larr;</span>
           <span>글 목록으로 돌아가기</span>
@@ -69,6 +69,17 @@ export default async function BlogPost({ params }: Props) {
           <span>{formatLongDate(post.created_at)}</span>
           <span>·</span>
           <span>{post.category || "General"}</span>
+          {post.series && (
+            <>
+              <span>·</span>
+              <Link
+                href={`/series/${encodeURIComponent(post.series)}`}
+                className="hover:text-[color:var(--foreground)] hover:underline"
+              >
+                {post.series}
+              </Link>
+            </>
+          )}
           <span>·</span>
           <span>{post.readingTimeMinutes} min read</span>
         </div>
@@ -80,6 +91,20 @@ export default async function BlogPost({ params }: Props) {
         <p className="mt-5 text-base leading-8 text-[color:var(--muted)]">
           {post.description}
         </p>
+
+        {post.tags.length > 0 && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {post.tags.map((tag) => (
+              <Link
+                key={tag}
+                href={`/tags/${encodeURIComponent(tag)}`}
+                className="rounded-full border border-[color:var(--border)] px-3 py-1 text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+              >
+                #{tag}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {post.thumbnail && (
           <div className="mt-8 overflow-hidden rounded-2xl border border-[color:var(--border)]">

@@ -160,40 +160,43 @@ export default function CommentSection({ postId }: { postId: string }) {
         <div
           className={`mt-6 rounded-xl px-4 py-3 text-sm ${
             errorMessage
-              ? "bg-[#f9fafb] text-black"
-              : "bg-[#f9fafb] text-black"
+              ? "border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)]"
+              : "border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)]"
           }`}
         >
           {errorMessage || feedback}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-8 border border-[color:var(--border)] p-5">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-8 border border-[color:var(--border)] bg-[color:var(--surface)] p-5"
+      >
         <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
           <input
             type="text"
             placeholder="이름"
-            className="rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+            className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
           <input
             type="password"
             placeholder="비밀번호"
-            className="rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+            className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </div>
         <textarea
           placeholder="댓글을 남겨보세요..."
-          className="mt-4 h-32 w-full rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+          className="mt-4 h-32 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           value={form.content}
           onChange={(e) => setForm({ ...form, content: e.target.value })}
         />
         <button
           type="submit"
-          className="mt-4 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-4 rounded-full bg-[color:var(--foreground)] px-5 py-2.5 text-sm font-medium text-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isPending}
         >
           {isPending ? "처리 중..." : "댓글 등록"}
@@ -205,7 +208,7 @@ export default function CommentSection({ postId }: { postId: string }) {
           <article key={comment.id} className="py-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f4f6] text-sm font-semibold text-black">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-sm font-semibold text-[color:var(--foreground)]">
                   {comment.username.slice(0, 1).toUpperCase()}
                 </div>
                 <div>
@@ -221,14 +224,14 @@ export default function CommentSection({ postId }: { postId: string }) {
                   {editingId === comment.id ? (
                     <div className="mt-4 space-y-3">
                       <textarea
-                        className="h-28 w-full rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+                        className="h-28 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                       />
                       <input
                         type="password"
                         placeholder="수정 비밀번호"
-                        className="w-full rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+                        className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
                         value={editPassword}
                         onChange={(e) => setEditPassword(e.target.value)}
                       />
@@ -236,7 +239,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                         <button
                           type="button"
                           onClick={() => handleUpdate(comment.id)}
-                          className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+                          className="rounded-full bg-[color:var(--foreground)] px-4 py-2 text-sm font-medium text-[color:var(--background)]"
                         >
                           저장
                         </button>
@@ -259,7 +262,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                   )}
 
                   {deletingId === comment.id && (
-                    <div className="mt-4 border border-[color:var(--border)] bg-[#fafafa] p-4">
+                    <div className="mt-4 border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4">
                       <p className="text-sm font-medium text-[color:var(--foreground)]">
                         삭제하려면 비밀번호를 입력해주세요.
                       </p>
@@ -267,14 +270,14 @@ export default function CommentSection({ postId }: { postId: string }) {
                         <input
                           type="password"
                           placeholder="삭제 비밀번호"
-                          className="w-full rounded-lg border border-[color:var(--border)] bg-white px-4 py-3 outline-none transition focus:border-black"
+                          className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
                           value={deletePassword}
                           onChange={(e) => setDeletePassword(e.target.value)}
                         />
                         <button
                           type="button"
                           onClick={() => handleDelete(comment.id)}
-                          className="rounded-full bg-black px-4 py-3 text-sm font-medium text-white"
+                          className="rounded-full bg-[color:var(--foreground)] px-4 py-3 text-sm font-medium text-[color:var(--background)]"
                         >
                           삭제 확인
                         </button>

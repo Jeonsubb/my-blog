@@ -18,6 +18,21 @@
   --accent-strong: #111111;
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] {
+  --background: #0f1115;
+  --foreground: #f3f4f6;
+  --muted: #9ca3af;
+  --surface: #0f1115;
+  --surface-strong: #111827;
+  --border: #27272a;
+  --accent: #f3f4f6;
+  --accent-strong: #f3f4f6;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -53,6 +68,11 @@ textarea {
   color: #111111;
 }
 
+html[data-theme="dark"] ::selection {
+  background: #374151;
+  color: #f9fafb;
+}
+
 .prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: #111111;
@@ -67,6 +87,21 @@ textarea {
   --tw-prose-pre-bg: #111111;
   --tw-prose-th-borders: #e5e7eb;
   --tw-prose-td-borders: #e5e7eb;
+}
+
+html[data-theme="dark"] .prose {
+  --tw-prose-headings: #f9fafb;
+  --tw-prose-links: #f9fafb;
+  --tw-prose-bold: #f9fafb;
+  --tw-prose-counters: #9ca3af;
+  --tw-prose-bullets: #6b7280;
+  --tw-prose-quotes: #d1d5db;
+  --tw-prose-quote-borders: #27272a;
+  --tw-prose-code: #f9fafb;
+  --tw-prose-pre-code: #f9fafb;
+  --tw-prose-pre-bg: #030712;
+  --tw-prose-th-borders: #27272a;
+  --tw-prose-td-borders: #27272a;
 }
 
 .prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
@@ -89,4 +124,8 @@ textarea {
   background: #f9fafb;
   padding: 0.85rem 1rem;
   border-radius: 0 0.75rem 0.75rem 0;
+}
+
+html[data-theme="dark"] .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  background: #111827;
 }

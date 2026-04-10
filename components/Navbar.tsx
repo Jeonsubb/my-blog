@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -19,7 +20,8 @@ export default function Navbar() {
           전섭의 빌드 로그
         </Link>
 
-        <nav className="flex items-center gap-5 text-sm text-[color:var(--muted)]">
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-5 text-sm text-[color:var(--muted)]">
           {navItems.map((item) => {
             const isActive =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -38,7 +40,9 @@ export default function Navbar() {
               </Link>
             );
           })}
-        </nav>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

@@ -22,12 +22,15 @@ export default async function Home() {
           <Link href="/blog" className="font-medium hover:underline">
             글 보러 가기
           </Link>
-          <Link href="/about" className="text-[color:var(--muted)] hover:text-black">
+          <Link
+            href="/about"
+            className="text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+          >
             소개
           </Link>
           <Link
             href="/admin/write"
-            className="text-[color:var(--muted)] hover:text-black"
+            className="text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
           >
             Editor Lab
           </Link>
@@ -37,7 +40,10 @@ export default async function Home() {
       <section>
         <div className="flex items-center justify-between border-b border-[color:var(--border)] pb-3">
           <h2 className="text-lg font-medium">최근 글</h2>
-          <Link href="/blog" className="text-sm text-[color:var(--muted)] hover:text-black">
+          <Link
+            href="/blog"
+            className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+          >
             전체 보기
           </Link>
         </div>

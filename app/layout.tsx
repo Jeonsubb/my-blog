@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
@@ -56,10 +57,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body
         className={`${bodyFont.variable} ${displayFont.variable} ${geistMono.variable} font-sans antialiased`}
       >
+        <Script id="theme-script" strategy="beforeInteractive">
+          {`try {
+            const savedTheme = window.localStorage.getItem("theme");
+            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            const theme = savedTheme === "dark" || savedTheme === "light"
+              ? savedTheme
+              : prefersDark
+                ? "dark"
+                : "light";
+            document.documentElement.dataset.theme = theme;
+          } catch (error) {
+            document.documentElement.dataset.theme = "light";
+          }`}
+        </Script>
         <div className="relative min-h-screen">
           <Navbar />
           <main>{children}</main>

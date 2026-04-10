@@ -11,6 +11,8 @@ type SupabasePostRecord = {
   description: string | null;
   thumbnail: string | null;
   category: string | null;
+  series?: string | null;
+  tags?: string[] | string | null;
   created_at: string;
 };
 
@@ -22,9 +24,32 @@ export interface PostData {
   description: string;
   thumbnail?: string | null;
   category?: string | null;
+  series?: string | null;
+  tags: string[];
   content?: string;
   contentHtml?: string;
   readingTimeMinutes: number;
+}
+
+function normalizeText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeTags(tags: unknown) {
+  if (Array.isArray(tags)) {
+    return tags
+      .map((tag) => normalizeText(tag))
+      .filter(Boolean);
+  }
+
+  if (typeof tags === "string") {
+    return tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  return [];
 }
 
 function mapSupabasePost(post: SupabasePostRecord, contentHtml?: string): PostData {
@@ -36,6 +61,8 @@ function mapSupabasePost(post: SupabasePostRecord, contentHtml?: string): PostDa
     description: post.description || getPlainTextExcerpt(post.content),
     thumbnail: post.thumbnail,
     category: post.category || "General",
+    series: normalizeText(post.series) || null,
+    tags: normalizeTags(post.tags),
     content: post.content,
     contentHtml,
     readingTimeMinutes: getReadingTimeMinutes(post.content),
@@ -55,7 +82,7 @@ export async function getPostData(slug: string): Promise<PostData | null> {
 
   const { data: post, error } = await supabase
     .from("posts")
-    .select("id, slug, title, content, description, thumbnail, category, created_at")
+    .select("*")
     .eq("slug", slug)
     .single();
 
@@ -78,7 +105,7 @@ export async function getSortedPostsData(): Promise<PostData[]> {
 
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("id, slug, title, content, description, thumbnail, category, created_at")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -87,4 +114,16 @@ export async function getSortedPostsData(): Promise<PostData[]> {
   }
 
   return (posts as SupabasePostRecord[]).map((post) => mapSupabasePost(post));
+}
+
+export function getUniqueTags(posts: PostData[]) {
+  return [...new Set(posts.flatMap((post) => post.tags))].sort((a, b) =>
+    a.localeCompare(b, "ko"),
+  );
+}
+
+export function getUniqueSeries(posts: PostData[]) {
+  return [...new Set(posts.map((post) => post.series).filter(Boolean) as string[])].sort(
+    (a, b) => a.localeCompare(b, "ko"),
+  );
 }
