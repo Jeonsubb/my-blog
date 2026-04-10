@@ -38,9 +38,12 @@ npm run dev
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+ADMIN_WRITE_SECRET=your_admin_write_secret
 ```
 
 환경 변수가 없으면 게시글과 댓글 기능은 비어 있는 상태로 동작합니다.
+관리자 글 작성 페이지를 쓰려면 `SUPABASE_SERVICE_ROLE_KEY`와 `ADMIN_WRITE_SECRET`이 추가로 필요합니다.
 
 ## 주요 경로
 
@@ -49,6 +52,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - `/blog/[slug]` : 글 상세
 - `/about` : 프로젝트 소개
 - `/admin/write` : 에디터 프로토타입 페이지
+
+## 관리자 글 작성
+
+`/admin/write`에서 아래 값을 입력하면 글을 바로 저장할 수 있습니다.
+
+- 제목
+- 카테고리
+- 시리즈
+- 태그
+- 요약
+- 썸네일 주소
+- 마크다운 본문
+- 관리자 비밀번호
+
+Supabase `posts` 테이블에는 아래 컬럼이 있으면 됩니다.
+
+```sql
+alter table posts add column if not exists series text;
+alter table posts add column if not exists tags text[] default '{}';
+```
 
 ## 다음 확장 아이디어
 

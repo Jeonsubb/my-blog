@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
+import { commentEmojis } from "@/lib/emojis";
 
 type Comment = {
   id: number;
@@ -194,6 +195,23 @@ export default function CommentSection({ postId }: { postId: string }) {
           value={form.content}
           onChange={(e) => setForm({ ...form, content: e.target.value })}
         />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {commentEmojis.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() =>
+                setForm((currentForm) => ({
+                  ...currentForm,
+                  content: `${currentForm.content}${emoji}`,
+                }))
+              }
+              className="rounded-full border border-[color:var(--border)] px-3 py-1 text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
         <button
           type="submit"
           className="mt-4 rounded-full bg-[color:var(--foreground)] px-5 py-2.5 text-sm font-medium text-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-70"
