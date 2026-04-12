@@ -4,6 +4,7 @@ import AdminEditor from "@/components/AdminEditor";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { hasAdminSessionFromCookies } from "@/lib/admin-guard";
 import { isAiConfigured } from "@/lib/ai";
+import { getSortedPostsData } from "@/lib/posts";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -21,21 +22,35 @@ export default async function AdminWritePage() {
     redirect("/admin/login");
   }
 
+  const posts = await getSortedPostsData();
+  const initialPosts = posts.map((post) => ({
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    category: post.category || null,
+    series: post.series || null,
+    tags: post.tags,
+    thumbnail: post.thumbnail || null,
+    content: post.content || "",
+    created_at: post.created_at,
+  }));
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6">
       <section className="flex flex-col gap-4 border-b border-[color:var(--border)] pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <p className="text-sm text-[color:var(--muted)]">Admin</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">글 작성</h1>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">글 관리</h1>
           <p className="mt-4 text-sm leading-7 text-[color:var(--muted)]">
-            새 글 초안을 작성합니다.
+            새 글을 작성하고, 저장된 글을 수정하거나 삭제할 수 있습니다.
           </p>
         </div>
 
         <AdminLogoutButton />
       </section>
 
-      <AdminEditor isAiEnabled={isAiConfigured} />
+      <AdminEditor isAiEnabled={isAiConfigured} initialPosts={initialPosts} />
     </div>
   );
 }

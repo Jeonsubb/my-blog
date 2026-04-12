@@ -1,10 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useState } from "react";
+import { useEffect, useDeferredValue, useState } from "react";
+import { useRouter } from "next/navigation";
+import { slugify } from "@/lib/slug";
+
+type AdminPost = {
+  id: number | string;
+  slug: string;
+  title: string;
+  description: string;
+  category: string | null;
+  series: string | null;
+  tags: string[];
+  thumbnail: string | null;
+  content: string;
+  created_at: string;
+};
 
 type Props = {
   isAiEnabled: boolean;
+  initialPosts: AdminPost[];
 };
 
 type AiPanelState = {
@@ -15,49 +31,100 @@ type AiPanelState = {
 
 type AiTask = "summary" | "tags" | "seo";
 
-function slugify(value: string) {
-  const slug = value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-
-  return slug || "untitled-draft";
-}
+const emptyAiPanel: AiPanelState = {
+  summary: "",
+  seoDescription: "",
+  tags: [],
+};
 
 function estimateReadingTime(content: string) {
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 220));
 }
 
-export default function AdminEditor({ isAiEnabled }: Props) {
+function formatAdminDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
+function sortPosts(posts: AdminPost[]) {
+  return [...posts].sort(
+    (left, right) =>
+      new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+  );
+}
+
+export default function AdminEditor({ isAiEnabled, initialPosts }: Props) {
+  const router = useRouter();
+  const [posts, setPosts] = useState(() => sortPosts(initialPosts));
+  const [editingPostId, setEditingPostId] = useState<number | string | null>(null);
+  const [editorSlug, setEditorSlug] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [series, setSeries] = useState("");
   const [tags, setTags] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState("");
+  const [content, setContent] = useState("## 문제\n\n## 해결 과정\n\n## 정리\n");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdPath, setCreatedPath] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<number | string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiPendingTask, setAiPendingTask] = useState<AiTask | null>(null);
-  const [aiPanel, setAiPanel] = useState<AiPanelState>({
-    summary: "",
-    seoDescription: "",
-    tags: [],
-  });
-  const [content, setContent] = useState("## 문제\n\n## 해결 과정\n\n## 정리\n");
+  const [aiPanel, setAiPanel] = useState<AiPanelState>(emptyAiPanel);
+
+  useEffect(() => {
+    setPosts(sortPosts(initialPosts));
+  }, [initialPosts]);
 
   const deferredContent = useDeferredValue(content);
-  const slug = slugify(title);
+  const isEditing = editingPostId !== null;
+  const resolvedSlug = isEditing ? editorSlug : slugify(title);
   const readingTime = estimateReadingTime(deferredContent);
   const parsedTags = tags
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+
+  const resetEditor = () => {
+    setEditingPostId(null);
+    setEditorSlug("");
+    setTitle("");
+    setCategory("");
+    setSeries("");
+    setTags("");
+    setDescription("");
+    setThumbnail("");
+    setContent("## 문제\n\n## 해결 과정\n\n## 정리\n");
+    setFeedback(null);
+    setErrorMessage(null);
+    setCreatedPath(null);
+    setAiError(null);
+    setAiPanel(emptyAiPanel);
+  };
+
+  const loadPostIntoEditor = (post: AdminPost) => {
+    setEditingPostId(post.id);
+    setEditorSlug(post.slug);
+    setTitle(post.title);
+    setCategory(post.category || "");
+    setSeries(post.series || "");
+    setTags(post.tags.join(", "));
+    setDescription(post.description || "");
+    setThumbnail(post.thumbnail || "");
+    setContent(post.content || "");
+    setFeedback(null);
+    setErrorMessage(null);
+    setCreatedPath(`/blog/${post.slug}`);
+    setAiError(null);
+    setAiPanel(emptyAiPanel);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const requestAiAssist = async (task: AiTask) => {
     if (!title && !content.trim()) {
@@ -141,13 +208,15 @@ export default function AdminEditor({ isAiEnabled }: Props) {
 
     try {
       const response = await fetch("/api/admin/posts", {
-        method: "POST",
+        method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          id: editingPostId,
+          previousSlug: editorSlug,
           title,
-          slug,
+          slug: resolvedSlug,
           description,
           category,
           series,
@@ -163,12 +232,66 @@ export default function AdminEditor({ isAiEnabled }: Props) {
         throw new Error(result.error || "글 저장에 실패했습니다.");
       }
 
-      setFeedback("글이 저장되었습니다.");
-      setCreatedPath(result.path || null);
+      const savedPost = result.data as AdminPost;
+
+      setPosts((currentPosts) => {
+        const withoutCurrent = currentPosts.filter((post) => post.id !== savedPost.id);
+        return sortPosts([savedPost, ...withoutCurrent]);
+      });
+
+      setEditingPostId(savedPost.id);
+      setEditorSlug(savedPost.slug);
+      setCreatedPath(result.path || `/blog/${savedPost.slug}`);
+      setFeedback(isEditing ? "글이 수정되었습니다." : "글이 저장되었습니다.");
+      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "글 저장에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (post: AdminPost) => {
+    const confirmed = window.confirm(`"${post.title}" 글을 삭제할까요?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingPostId(post.id);
+    setFeedback(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/posts", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: post.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "글 삭제에 실패했습니다.");
+      }
+
+      setPosts((currentPosts) => currentPosts.filter((currentPost) => currentPost.id !== post.id));
+
+      if (editingPostId === post.id) {
+        resetEditor();
+      }
+
+      setFeedback("글이 삭제되었습니다.");
+      setCreatedPath(null);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "글 삭제에 실패했습니다.");
+    } finally {
+      setDeletingPostId(null);
     }
   };
 
@@ -178,8 +301,29 @@ export default function AdminEditor({ isAiEnabled }: Props) {
         onSubmit={handleSubmit}
         className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6"
       >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-[color:var(--muted)]">
+              {isEditing ? "Edit post" : "New post"}
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+              {isEditing ? "글 수정" : "글 작성"}
+            </h2>
+          </div>
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={resetEditor}
+              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+            >
+              새 초안
+            </button>
+          )}
+        </div>
+
         {(feedback || errorMessage) && (
-          <div className="mb-5 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm text-[color:var(--foreground)]">
+          <div className="mt-5 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm text-[color:var(--foreground)]">
             {errorMessage || feedback}
             {createdPath && (
               <span className="ml-2">
@@ -191,7 +335,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-[color:var(--muted)]">
               제목
@@ -200,7 +344,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -213,7 +356,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -228,7 +370,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={series}
               onChange={(event) => setSeries(event.target.value)}
-              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -241,7 +382,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={tags}
               onChange={(event) => setTags(event.target.value)}
-              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -254,7 +394,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            
             className="h-28 w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           />
         </label>
@@ -267,7 +406,6 @@ export default function AdminEditor({ isAiEnabled }: Props) {
             type="text"
             value={thumbnail}
             onChange={(event) => setThumbnail(event.target.value)}
-            
             className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           />
         </label>
@@ -283,16 +421,127 @@ export default function AdminEditor({ isAiEnabled }: Props) {
           />
         </label>
 
-        <button
-          type="submit"
-          className="filled-control mt-5 rounded-full border px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "저장 중..." : "글 저장"}
-        </button>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="submit"
+            className="filled-control rounded-full border px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "저장 중..." : isEditing ? "글 수정" : "글 저장"}
+          </button>
+
+          {isEditing && createdPath && (
+            <Link
+              href={createdPath}
+              className="rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+            >
+              공개 글 보기
+            </Link>
+          )}
+        </div>
       </form>
 
       <div className="space-y-6">
+        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-[color:var(--muted)]">Posts</p>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+                저장된 글을 선택해 수정하거나 삭제할 수 있습니다.
+              </p>
+            </div>
+            <span className="rounded-full border border-[color:var(--border)] px-3 py-1 text-sm text-[color:var(--muted)]">
+              {posts.length} posts
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {posts.length === 0 && (
+              <p className="text-sm leading-6 text-[color:var(--muted)]">
+                아직 저장된 글이 없습니다.
+              </p>
+            )}
+
+            {posts.map((post) => {
+              const isSelected = editingPostId === post.id;
+              const isDeleting = deletingPostId === post.id;
+
+              return (
+                <article
+                  key={post.id}
+                  className={`rounded-2xl border px-4 py-4 transition ${
+                    isSelected
+                      ? "border-[color:var(--foreground)] bg-[color:var(--surface-strong)]"
+                      : "border-[color:var(--border)] bg-[color:var(--surface)]"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm text-[color:var(--muted)]">
+                        {formatAdminDate(post.created_at)}
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em]">
+                        {post.title}
+                      </h3>
+                      <p className="mt-2 break-all text-sm text-[color:var(--muted)]">
+                        /blog/{post.slug}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[color:var(--muted)]">
+                        {post.category && (
+                          <span className="rounded-full border border-[color:var(--border)] px-2 py-1">
+                            {post.category}
+                          </span>
+                        )}
+                        {post.series && (
+                          <span className="rounded-full border border-[color:var(--border)] px-2 py-1">
+                            {post.series}
+                          </span>
+                        )}
+                        {post.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={`${post.id}-${tag}`}
+                            className="rounded-full border border-[color:var(--border)] px-2 py-1"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => loadPostIntoEditor(post)}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          isSelected
+                            ? "filled-control"
+                            : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+                        }`}
+                      >
+                        수정
+                      </button>
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]"
+                      >
+                        보기
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(post)}
+                        className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:text-[color:var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? "삭제 중..." : "삭제"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
           <p className="text-sm font-medium text-[color:var(--muted)]">AI Assist</p>
           <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
@@ -386,7 +635,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
           <div className="mt-5 grid grid-cols-2 gap-4 text-sm text-[color:var(--muted)]">
             <div>
               <p className="font-medium text-[color:var(--foreground)]">Slug</p>
-              <p className="mt-1 break-all">/blog/{slug}</p>
+              <p className="mt-1 break-all">/blog/{resolvedSlug}</p>
             </div>
             <div>
               <p className="font-medium text-[color:var(--foreground)]">Reading time</p>
@@ -406,6 +655,12 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               </p>
               <p className="mt-1">{description.length} chars</p>
             </div>
+            {isEditing && (
+              <div>
+                <p className="font-medium text-[color:var(--foreground)]">Link policy</p>
+                <p className="mt-1">수정 모드에서는 기존 slug를 유지합니다.</p>
+              </div>
+            )}
           </div>
 
           {parsedTags.length > 0 && (
