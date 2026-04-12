@@ -442,6 +442,94 @@ export default function AdminEditor({ isAiEnabled, initialPosts }: Props) {
       </form>
 
       <div className="space-y-6">
+        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 lg:sticky lg:top-6">
+          <p className="text-sm font-medium text-[color:var(--muted)]">AI Assist</p>
+          <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+            초안 기준으로 요약, 태그, SEO description 초안을 정리합니다.
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => requestAiAssist("summary")}
+              disabled={!isAiEnabled || aiPendingTask !== null}
+              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {aiPendingTask === "summary" ? "요약 중..." : "AI 요약"}
+            </button>
+            <button
+              type="button"
+              onClick={() => requestAiAssist("tags")}
+              disabled={!isAiEnabled || aiPendingTask !== null}
+              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {aiPendingTask === "tags" ? "추천 중..." : "태그 추천"}
+            </button>
+            <button
+              type="button"
+              onClick={() => requestAiAssist("seo")}
+              disabled={!isAiEnabled || aiPendingTask !== null}
+              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {aiPendingTask === "seo" ? "생성 중..." : "SEO 초안"}
+            </button>
+          </div>
+
+          {!isAiEnabled && (
+            <p className="mt-4 text-sm leading-6 text-[color:var(--muted)]">
+              Gemini API 키를 설정하면 AI 보조 기능을 사용할 수 있습니다.
+            </p>
+          )}
+
+          {aiError && (
+            <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm text-[color:var(--foreground)]">
+              {aiError}
+            </div>
+          )}
+
+          {(aiPanel.summary || aiPanel.seoDescription || aiPanel.tags.length > 0) && (
+            <div className="mt-5 space-y-5 border-t border-[color:var(--border)] pt-5">
+              {aiPanel.summary && (
+                <div>
+                  <p className="text-sm font-medium text-[color:var(--foreground)]">요약</p>
+                  <p className="mt-2 text-sm leading-7 text-[color:var(--muted)]">
+                    {aiPanel.summary}
+                  </p>
+                </div>
+              )}
+
+              {aiPanel.seoDescription && (
+                <div>
+                  <p className="text-sm font-medium text-[color:var(--foreground)]">
+                    SEO description
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-[color:var(--muted)]">
+                    {aiPanel.seoDescription}
+                  </p>
+                </div>
+              )}
+
+              {aiPanel.tags.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-[color:var(--foreground)]">
+                    추천 태그
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {aiPanel.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[color:var(--border)] px-3 py-1 text-sm text-[color:var(--muted)]"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -540,94 +628,6 @@ export default function AdminEditor({ isAiEnabled, initialPosts }: Props) {
               );
             })}
           </div>
-        </section>
-
-        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
-          <p className="text-sm font-medium text-[color:var(--muted)]">AI Assist</p>
-          <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-            초안 기준으로 요약, 태그, SEO description 초안을 정리합니다.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => requestAiAssist("summary")}
-              disabled={!isAiEnabled || aiPendingTask !== null}
-              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {aiPendingTask === "summary" ? "요약 중..." : "AI 요약"}
-            </button>
-            <button
-              type="button"
-              onClick={() => requestAiAssist("tags")}
-              disabled={!isAiEnabled || aiPendingTask !== null}
-              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {aiPendingTask === "tags" ? "추천 중..." : "태그 추천"}
-            </button>
-            <button
-              type="button"
-              onClick={() => requestAiAssist("seo")}
-              disabled={!isAiEnabled || aiPendingTask !== null}
-              className="rounded-full border border-[color:var(--border)] px-4 py-2 text-sm text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {aiPendingTask === "seo" ? "생성 중..." : "SEO 초안"}
-            </button>
-          </div>
-
-          {!isAiEnabled && (
-            <p className="mt-4 text-sm leading-6 text-[color:var(--muted)]">
-              Gemini API 키를 설정하면 AI 보조 기능을 사용할 수 있습니다.
-            </p>
-          )}
-
-          {aiError && (
-            <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm text-[color:var(--foreground)]">
-              {aiError}
-            </div>
-          )}
-
-          {(aiPanel.summary || aiPanel.seoDescription || aiPanel.tags.length > 0) && (
-            <div className="mt-5 space-y-5 border-t border-[color:var(--border)] pt-5">
-              {aiPanel.summary && (
-                <div>
-                  <p className="text-sm font-medium text-[color:var(--foreground)]">요약</p>
-                  <p className="mt-2 text-sm leading-7 text-[color:var(--muted)]">
-                    {aiPanel.summary}
-                  </p>
-                </div>
-              )}
-
-              {aiPanel.seoDescription && (
-                <div>
-                  <p className="text-sm font-medium text-[color:var(--foreground)]">
-                    SEO description
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-[color:var(--muted)]">
-                    {aiPanel.seoDescription}
-                  </p>
-                </div>
-              )}
-
-              {aiPanel.tags.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-[color:var(--foreground)]">
-                    추천 태그
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {aiPanel.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-[color:var(--border)] px-3 py-1 text-sm text-[color:var(--muted)]"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </section>
 
         <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6">
