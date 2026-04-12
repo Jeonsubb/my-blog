@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tag } = await params;
   return {
     title: `#${tag}`,
-    description: `#${tag} 태그가 붙은 글을 모아봅니다.`,
+    description: `#${tag} 태그가 붙은 글 목록입니다.`,
   };
 }
 
@@ -35,7 +35,7 @@ export default async function TagPage({ params }: Props) {
         <p className="text-sm text-[color:var(--muted)]">Tag archive</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em]">#{tag}</h1>
         <p className="mt-4 text-base leading-8 text-[color:var(--muted)]">
-          이 태그가 붙은 글만 모아서 봅니다.
+          같은 태그로 묶인 글만 모아 볼 수 있습니다.
         </p>
       </section>
 

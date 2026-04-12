@@ -27,10 +27,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${siteConfig.url}/blog`,
       lastModified: new Date(),
     },
-    {
-      url: `${siteConfig.url}/about`,
-      lastModified: new Date(),
-    },
     ...tags,
     ...series,
     ...posts,

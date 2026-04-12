@@ -1,17 +1,23 @@
-# 전섭의 빌드 로그
+# 전섭의 블로그
 
-Next.js와 Supabase를 기반으로 만든 에디토리얼 블로그 플랫폼입니다.
-단순한 개인 블로그를 넘어서, 게시글 데이터 엔진 전환, 댓글 CRUD API, SEO, 에디터 확장성까지 함께 보여주는 포트폴리오 프로젝트로 다듬었습니다.
+포트폴리오용으로 정리한 개인 기술 블로그입니다.  
+Next.js App Router와 Supabase를 기반으로 글 작성, 공개 포스트 조회, 댓글, 관리자 인증, AI 보조 기능을 함께 다룹니다.
 
 배포 주소: `https://my-blog-xi-flame.vercel.app`
 
-## 주요 포인트
+## 핵심 포인트
 
-- Supabase 기반 게시글 조회 구조
-- 댓글 조회, 작성, 수정, 삭제 API
-- 동적 메타데이터, `sitemap.xml`, `robots.txt`
-- 카테고리 필터 + 검색이 가능한 글 목록
-- 포트폴리오 설명력을 높이는 About / Editor Lab 화면
+- 미니멀한 개인 기술 블로그 UI
+- Supabase 기반 포스트/댓글 데이터 구조
+- `bcryptjs` 해시 비교 + `httpOnly` 세션 쿠키 기반 관리자 인증
+- `/admin` 경로 `middleware` 보호
+- 관리자 에디터용 AI 보조 기능
+  - 요약 생성
+  - 태그 추천
+  - SEO description 초안
+- 공개 포스트 상세용 소형 AI 카드
+  - AI 3줄 요약
+  - AI 읽기 가이드
 
 ## 기술 스택
 
@@ -20,63 +26,107 @@ Next.js와 Supabase를 기반으로 만든 에디토리얼 블로그 플랫폼�
 - TypeScript
 - Tailwind CSS v4
 - Supabase
+- Vercel AI SDK
+- Google Gemini Provider
+- bcryptjs
 - remark / remark-html
 
-## 로컬 실행
+## 관리자 인증 방식
 
-의존성 설치 후 개발 서버를 실행합니다.
+- 관리자 비밀번호 원문은 저장하지 않습니다.
+- `ADMIN_PASSWORD_HASH`에 bcrypt 해시를 저장하고 서버에서 `compare`로 검증합니다.
+- 인증 성공 시 서명된 세션 값을 `httpOnly` 쿠키로 발급합니다.
+- `/admin` 경로는 `middleware.ts`에서 먼저 보호합니다.
+- 관리자 API도 쿠키 세션을 다시 검증하므로 클라이언트 체크만으로 우회되지 않습니다.
+
+## 환경변수
+
+루트에 `.env.local` 파일을 만들고 아래 값을 설정합니다.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_or_publishable_key
+# 또는
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+ADMIN_PASSWORD_HASH=your_bcrypt_hash
+ADMIN_SESSION_SECRET=replace_this_with_a_long_random_string
+
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key
+GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash
+# 선택
+# GOOGLE_GENERATIVE_AI_BASE_URL=https://your-proxy-endpoint
+
+# 기존 OPENAI_* 이름도 잠시 호환되지만, Gemini 사용 시 위 변수명을 권장합니다.
+```
+
+`ADMIN_PASSWORD_HASH`는 bcrypt 해시라 `$` 문자가 포함됩니다.  
+Next 환경변수에서 값이 깨지지 않도록 `.env.local`에는 `\$`로 이스케이프해서 넣는 것을 권장합니다.
+
+### bcrypt 해시 생성 예시
+
+프로젝트 의존성 설치 후 아래 명령으로 로컬 개발용 해시를 만들 수 있습니다.
+
+```bash
+node -e "const bcrypt=require('bcryptjs'); bcrypt.hash('your-password', 12).then(console.log)"
+```
+
+## 로컬 실행
 
 ```bash
 npm install
 npm run dev
 ```
 
-## 환경 변수
+브라우저에서 `http://localhost:3000`으로 접속합니다.
 
-프로덕션과 같은 Supabase 데이터를 사용하려면 루트에 `.env.local` 파일을 만들고 아래 값을 넣어주세요.
+관리자 로그인 화면은 `http://localhost:3000/admin/login` 입니다.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-ADMIN_WRITE_SECRET=your_admin_write_secret
-```
+## AI 기능 사용 방법
 
-환경 변수가 없으면 게시글과 댓글 기능은 비어 있는 상태로 동작합니다.
-관리자 글 작성 페이지를 쓰려면 `SUPABASE_SERVICE_ROLE_KEY`와 `ADMIN_WRITE_SECRET`이 추가로 필요합니다.
+### 관리자 에디터
+
+1. `/admin/login`에서 로그인합니다.
+2. `/admin/write`에서 제목과 본문 초안을 입력합니다.
+3. `AI 요약`, `태그 추천`, `SEO 초안` 버튼을 눌러 보조 결과를 확인합니다.
+4. SEO 초안과 태그 추천은 에디터 폼에 바로 반영됩니다.
+
+### 공개 포스트 상세
+
+- 글 상세 페이지의 `AI 노트` 카드에서 3줄 요약과 읽기 가이드를 확인할 수 있습니다.
+- `GOOGLE_GENERATIVE_AI_API_KEY`가 없으면 UI는 유지되고 기능만 비활성화됩니다.
 
 ## 주요 경로
 
-- `/` : 프로젝트 랜딩 페이지
-- `/blog` : 글 목록 및 필터
+- `/` : 홈
+- `/blog` : 글 목록
 - `/blog/[slug]` : 글 상세
-- `/about` : 프로젝트 소개
-- `/admin/write` : 에디터 프로토타입 페이지
+- `/tags/[tag]` : 태그별 글
+- `/series/[series]` : 시리즈별 글
+- `/admin/login` : 관리자 로그인
+- `/admin/write` : 관리자 글 작성
 
-## 관리자 글 작성
+## Supabase 참고
 
-`/admin/write`에서 아래 값을 입력하면 글을 바로 저장할 수 있습니다.
-
-- 제목
-- 카테고리
-- 시리즈
-- 태그
-- 요약
-- 썸네일 주소
-- 마크다운 본문
-- 관리자 비밀번호
-
-Supabase `posts` 테이블에는 아래 컬럼이 있으면 됩니다.
+포스트 저장용 `posts` 테이블에는 아래 컬럼이 필요합니다.
 
 ```sql
 alter table posts add column if not exists series text;
 alter table posts add column if not exists tags text[] default '{}';
 ```
 
-## 다음 확장 아이디어
+댓글 기능을 사용 중이라면 기존 `comments` 테이블도 함께 준비되어 있어야 합니다.
 
-- 관리자 인증이 포함된 실제 게시글 발행 기능
-- Supabase Storage 기반 이미지 업로드
-- 태그 / 시리즈 / 추천 글 구조
-- RSS 피드 생성
-- 댓글 비밀번호 해시 마이그레이션과 관리자 moderation 기능
+## Vercel 배포 시 환경변수
+
+Vercel Project Settings > Environment Variables에 아래 값을 등록합니다.
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` 또는 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_PASSWORD_HASH`
+- `ADMIN_SESSION_SECRET`
+- `GOOGLE_GENERATIVE_AI_API_KEY`
+- `GOOGLE_GENERATIVE_AI_MODEL`
+- `GOOGLE_GENERATIVE_AI_BASE_URL` (사용하는 경우만)

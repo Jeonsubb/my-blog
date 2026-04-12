@@ -2,17 +2,33 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-space-grotesk);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:
+    "Pretendard Variable",
+    "SUIT Variable",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    sans-serif;
+  --font-display:
+    "Pretendard Variable",
+    "SUIT Variable",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    sans-serif;
+  --font-mono:
+    "JetBrains Mono",
+    "SFMono-Regular",
+    "Consolas",
+    "Liberation Mono",
+    monospace;
 }
 
 :root {
   --background: #ffffff;
   --foreground: #111111;
+  --on-foreground: #ffffff;
   --muted: #6b7280;
   --surface: #ffffff;
-  --surface-strong: #ffffff;
+  --surface-strong: #f8fafc;
   --border: #e5e7eb;
   --accent: #111111;
   --accent-strong: #111111;
@@ -25,6 +41,7 @@ html[data-theme="dark"] {
 html[data-theme="dark"] {
   --background: #0f1115;
   --foreground: #f3f4f6;
+  --on-foreground: #111111;
   --muted: #9ca3af;
   --surface: #0f1115;
   --surface-strong: #111827;
@@ -43,13 +60,22 @@ html {
 
 body {
   min-height: 100vh;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top, rgba(17, 17, 17, 0.04), transparent 30rem),
+    var(--background);
   color: var(--foreground);
   font-family:
-    var(--font-geist-sans),
+    "Pretendard Variable",
+    "SUIT Variable",
     "Apple SD Gothic Neo",
     "Noto Sans KR",
     sans-serif;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top, rgba(243, 244, 246, 0.05), transparent 30rem),
+    var(--background);
 }
 
 a {
@@ -60,6 +86,7 @@ a {
 button,
 input,
 textarea {
+  color: inherit;
   font: inherit;
 }
 
@@ -75,14 +102,14 @@ html[data-theme="dark"] ::selection {
 
 .prose {
   --tw-prose-body: var(--foreground);
-  --tw-prose-headings: #111111;
+  --tw-prose-headings: var(--foreground);
   --tw-prose-links: var(--accent);
-  --tw-prose-bold: #111111;
+  --tw-prose-bold: var(--foreground);
   --tw-prose-counters: var(--muted);
   --tw-prose-bullets: #9ca3af;
   --tw-prose-quotes: #374151;
   --tw-prose-quote-borders: #e5e7eb;
-  --tw-prose-code: #111111;
+  --tw-prose-code: var(--foreground);
   --tw-prose-pre-code: #f9fafb;
   --tw-prose-pre-bg: #111111;
   --tw-prose-th-borders: #e5e7eb;
@@ -105,7 +132,12 @@ html[data-theme="dark"] .prose {
 }
 
 .prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family:
+    "Pretendard Variable",
+    "SUIT Variable",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    sans-serif;
   letter-spacing: -0.04em;
 }
 
@@ -128,4 +160,26 @@ html[data-theme="dark"] .prose {
 
 html[data-theme="dark"] .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
   background: #111827;
+}
+
+.filled-control {
+  background: #111111 !important;
+  border-color: #111111 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .filled-control {
+  background: #f3f4f6 !important;
+  border-color: #f3f4f6 !important;
+  color: #111111 !important;
+}
+
+.editor-markdown-field {
+  background: #111827 !important;
+  color: #f3f4f6 !important;
+  caret-color: #f3f4f6;
+}
+
+.editor-markdown-field::placeholder {
+  color: #94a3b8 !important;
 }

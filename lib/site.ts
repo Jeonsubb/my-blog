@@ -1,7 +1,6 @@
 export const siteConfig = {
-  name: "전섭의 빌드 로그",
-  description:
-    "Next.js와 Supabase를 기반으로 글, 댓글, SEO, CMS 확장성을 함께 실험하는 에디토리얼 블로그 플랫폼입니다.",
+  name: "전섭의 블로그",
+  description: "꾸준히 성장하는 개발자를 지향하며 구현과 설계를 기록하는 기술 블로그입니다.",
   url: "https://my-blog-xi-flame.vercel.app",
   author: "전섭",
 };

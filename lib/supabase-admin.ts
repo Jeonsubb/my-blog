@@ -2,16 +2,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const adminWriteSecret = process.env.ADMIN_WRITE_SECRET;
 
-export const isAdminWriteConfigured = Boolean(
-  supabaseUrl && supabaseServiceRoleKey && adminWriteSecret,
-);
+export const isAdminDatabaseConfigured = Boolean(supabaseUrl && supabaseServiceRoleKey);
 
 let supabaseAdminClient: SupabaseClient | null = null;
 
 export function getSupabaseAdminClient() {
-  if (!isAdminWriteConfigured) {
+  if (!isAdminDatabaseConfigured) {
     return null;
   }
 
@@ -25,8 +22,4 @@ export function getSupabaseAdminClient() {
   }
 
   return supabaseAdminClient;
-}
-
-export function isAdminSecretValid(secret: string) {
-  return Boolean(adminWriteSecret) && secret === adminWriteSecret;
 }

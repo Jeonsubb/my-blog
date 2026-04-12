@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { series } = await params;
   return {
     title: series,
-    description: `${series} 시리즈 글을 모아봅니다.`,
+    description: `${series} 시리즈 글 목록입니다.`,
   };
 }
 
@@ -35,7 +35,7 @@ export default async function SeriesPage({ params }: Props) {
         <p className="text-sm text-[color:var(--muted)]">Series archive</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em]">{series}</h1>
         <p className="mt-4 text-base leading-8 text-[color:var(--muted)]">
-          같은 흐름으로 이어지는 글만 모아봅니다.
+          같은 흐름으로 이어지는 글만 모아 볼 수 있습니다.
         </p>
       </section>
 

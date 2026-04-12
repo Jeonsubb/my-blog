@@ -1,7 +1,9 @@
 import Link from "next/link";
-import CommentSection from "@/components/CommentSection";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import CommentSection from "@/components/CommentSection";
+import PostAiAssistant from "@/components/PostAiAssistant";
+import { isAiConfigured } from "@/lib/ai";
 import { getPostData, getSortedPostsData } from "@/lib/posts";
 import { absoluteUrl, formatLongDate, siteConfig } from "@/lib/site";
 
@@ -107,7 +109,8 @@ export default async function BlogPost({ params }: Props) {
         )}
 
         {post.thumbnail && (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-[color:var(--border)]">
+          <div className="mt-8 overflow-hidden rounded-3xl border border-[color:var(--border)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={post.thumbnail}
               alt={post.title}
@@ -116,6 +119,13 @@ export default async function BlogPost({ params }: Props) {
           </div>
         )}
       </section>
+
+      <PostAiAssistant
+        isAiEnabled={isAiConfigured}
+        title={post.title}
+        description={post.description}
+        content={post.content || ""}
+      />
 
       <section>
         <article className="prose prose-lg max-w-none">

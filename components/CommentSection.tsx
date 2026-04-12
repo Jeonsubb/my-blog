@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { commentEmojis } from "@/lib/emojis";
 
 type Comment = {
@@ -22,7 +22,7 @@ export default function CommentSection({ postId }: { postId: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const fetchComments = useEffectEvent(async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setErrorMessage(null);
       const res = await fetch(`/api/comments?postId=${postId}`, { cache: "no-store" });
@@ -39,11 +39,11 @@ export default function CommentSection({ postId }: { postId: string }) {
         error instanceof Error ? error.message : "댓글을 불러오지 못했습니다.",
       );
     }
-  });
+  }, [postId]);
 
   useEffect(() => {
     void fetchComments();
-  }, [postId]);
+  }, [fetchComments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +51,7 @@ export default function CommentSection({ postId }: { postId: string }) {
     setErrorMessage(null);
 
     if (!form.content || !form.username || !form.password) {
-      setErrorMessage("이름, 비밀번호, 댓글 내용을 모두 입력해주세요.");
+      setErrorMessage("이름, 비밀번호, 댓글 내용을 모두 입력해 주세요.");
       return;
     }
 
@@ -76,7 +76,7 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   const handleDelete = async (commentId: number) => {
     if (!deletePassword) {
-      setErrorMessage("삭제를 위해 비밀번호를 입력해주세요.");
+      setErrorMessage("삭제를 위해 비밀번호를 입력해 주세요.");
       return;
     }
 
@@ -92,7 +92,7 @@ export default function CommentSection({ postId }: { postId: string }) {
     const result = await res.json();
 
     if (result.success) {
-      setFeedback("댓글이 삭제되었습니다.");
+      setFeedback("댓글을 삭제했습니다.");
       setDeletingId(null);
       setDeletePassword("");
       startTransition(() => {
@@ -115,7 +115,7 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   const handleUpdate = async (commentId: number) => {
     if (!editContent || !editPassword) {
-      setErrorMessage("수정 내용과 비밀번호를 모두 입력해주세요.");
+      setErrorMessage("수정 내용과 비밀번호를 모두 입력해 주세요.");
       return;
     }
 
@@ -131,7 +131,7 @@ export default function CommentSection({ postId }: { postId: string }) {
     const result = await res.json();
 
     if (result.success) {
-      setFeedback("댓글이 수정되었습니다.");
+      setFeedback("댓글을 수정했습니다.");
       setEditingId(null);
       setEditPassword("");
       startTransition(() => {
@@ -152,19 +152,12 @@ export default function CommentSection({ postId }: { postId: string }) {
           </h3>
         </div>
         <p className="max-w-md text-sm leading-6 text-[color:var(--muted)]">
-          익명으로 남길 수 있지만, 수정과 삭제는 작성할 때 입력한 비밀번호로만
-          가능합니다.
+          익명 로그인 없이 남길 수 있지만 수정과 삭제는 작성 당시 입력한 비밀번호로만 가능합니다.
         </p>
       </div>
 
       {(feedback || errorMessage) && (
-        <div
-          className={`mt-6 rounded-xl px-4 py-3 text-sm ${
-            errorMessage
-              ? "border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)]"
-              : "border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)]"
-          }`}
-        >
+        <div className="mt-6 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm text-[color:var(--foreground)]">
           {errorMessage || feedback}
         </div>
       )}
@@ -190,7 +183,7 @@ export default function CommentSection({ postId }: { postId: string }) {
           />
         </div>
         <textarea
-          placeholder="댓글을 남겨보세요..."
+          placeholder="댓글을 남겨 보세요."
           className="mt-4 h-32 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           value={form.content}
           onChange={(e) => setForm({ ...form, content: e.target.value })}
@@ -214,7 +207,7 @@ export default function CommentSection({ postId }: { postId: string }) {
         </div>
         <button
           type="submit"
-          className="mt-4 rounded-full bg-[color:var(--foreground)] px-5 py-2.5 text-sm font-medium text-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="filled-control mt-4 rounded-full border px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isPending}
         >
           {isPending ? "처리 중..." : "댓글 등록"}
@@ -257,7 +250,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                         <button
                           type="button"
                           onClick={() => handleUpdate(comment.id)}
-                          className="rounded-full bg-[color:var(--foreground)] px-4 py-2 text-sm font-medium text-[color:var(--background)]"
+                          className="filled-control rounded-full border px-4 py-2 text-sm font-medium"
                         >
                           저장
                         </button>
@@ -282,7 +275,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                   {deletingId === comment.id && (
                     <div className="mt-4 border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-4">
                       <p className="text-sm font-medium text-[color:var(--foreground)]">
-                        삭제하려면 비밀번호를 입력해주세요.
+                        삭제하려면 비밀번호를 입력해 주세요.
                       </p>
                       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                         <input
@@ -295,7 +288,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                         <button
                           type="button"
                           onClick={() => handleDelete(comment.id)}
-                          className="rounded-full bg-[color:var(--foreground)] px-4 py-3 text-sm font-medium text-[color:var(--background)]"
+                          className="filled-control rounded-full border px-4 py-3 text-sm font-medium"
                         >
                           삭제 확인
                         </button>
@@ -345,11 +338,9 @@ export default function CommentSection({ postId }: { postId: string }) {
 
         {comments.length === 0 && (
           <div className="py-10 text-center">
-            <p className="text-xl font-semibold tracking-[-0.03em]">
-              아직 댓글이 없습니다
-            </p>
+            <p className="text-xl font-semibold tracking-[-0.03em]">아직 댓글이 없습니다</p>
             <p className="mt-3 text-sm leading-7 text-[color:var(--muted)]">
-              첫 번째 피드백을 남겨 이 글의 대화를 시작해보세요.
+              첫 번째 피드백을 남겨 보세요.
             </p>
           </div>
         )}

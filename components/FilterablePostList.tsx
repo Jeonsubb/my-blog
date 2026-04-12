@@ -11,6 +11,21 @@ type Props = {
   lockedSeries?: string;
 };
 
+function getChipProps(isSelected: boolean) {
+  if (isSelected) {
+    return {
+      className: "filled-control rounded-full border px-3 py-1.5 text-sm transition",
+      style: undefined,
+    };
+  }
+
+  return {
+    className:
+      "rounded-full border border-[color:var(--border)] px-3 py-1.5 text-sm text-[color:var(--muted)] transition hover:text-[color:var(--foreground)]",
+    style: undefined,
+  };
+}
+
 export default function FilterablePostList({
   posts,
   lockedTag,
@@ -43,7 +58,7 @@ export default function FilterablePostList({
         ? post.series === lockedSeries
         : selectedSeries === "All"
           ? true
-        : post.series === selectedSeries;
+          : post.series === selectedSeries;
     const searchableText = [
       post.title,
       post.description,
@@ -66,60 +81,66 @@ export default function FilterablePostList({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="검색어를 입력하세요"
-            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--foreground)]"
+            placeholder="검색어를 입력해 주세요"
+            className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--foreground)]"
           />
         </label>
 
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                selectedCategory === category
-                  ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
-                  : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+          {categories.map((category) => {
+            const chipProps = getChipProps(selectedCategory === category);
+
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setSelectedCategory(category)}
+                className={chipProps.className}
+                style={chipProps.style}
+              >
+                {category}
+              </button>
+            );
+          })}
         </div>
 
         {!lockedTag && tags.length > 1 && (
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  selectedTag === tag
-                    ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
-                    : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-                }`}
-              >
-                #{tag}
-              </button>
-            ))}
+            {tags.map((tag) => {
+              const chipProps = getChipProps(selectedTag === tag);
+
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag(tag)}
+                  className={chipProps.className}
+                  style={chipProps.style}
+                >
+                  {tag === "All" ? "All Tags" : `#${tag}`}
+                </button>
+              );
+            })}
           </div>
         )}
 
         {!lockedSeries && seriesList.length > 1 && (
           <div className="flex flex-wrap gap-2">
-            {seriesList.map((series) => (
-              <button
-                key={series}
-                onClick={() => setSelectedSeries(series)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  selectedSeries === series
-                    ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
-                    : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
-                }`}
-              >
-                {series === "All" ? "All Series" : series}
-              </button>
-            ))}
+            {seriesList.map((series) => {
+              const chipProps = getChipProps(selectedSeries === series);
+
+              return (
+                <button
+                  key={series}
+                  type="button"
+                  onClick={() => setSelectedSeries(series)}
+                  className={chipProps.className}
+                  style={chipProps.style}
+                >
+                  {series === "All" ? "All Series" : series}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -147,7 +168,7 @@ export default function FilterablePostList({
               </h3>
 
               <p className="mt-3 text-sm leading-7 text-[color:var(--muted)]">
-                {post.description || "이 글의 핵심 내용을 곧 정리해서 채워 넣을 예정입니다."}
+                {post.description || "설명이 아직 작성되지 않았습니다."}
               </p>
 
               {(post.tags.length > 0 || post.series) && (
@@ -180,8 +201,8 @@ export default function FilterablePostList({
             </p>
             <p className="mt-3 text-sm leading-7 text-[color:var(--muted)]">
               {posts.length === 0
-                ? "Supabase 데이터와 첫 게시글이 준비되면 이 공간이 채워집니다."
-                : "검색어를 줄이거나 다른 카테고리를 선택해 보세요."}
+                ? "새 글을 작성하면 목록이 이곳에 표시됩니다."
+                : "검색어나 필터를 조금 더 넓게 잡아 보세요."}
             </p>
           </div>
         )}

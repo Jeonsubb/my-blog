@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import {
-  getSupabaseAdminClient,
-  isAdminSecretValid,
-  isAdminWriteConfigured,
-} from "@/lib/supabase-admin";
+import { NextRequest, NextResponse } from "next/server";
+import { hasAdminSessionFromRequest, unauthorizedAdminResponse } from "@/lib/admin-guard";
+import { getSupabaseAdminClient, isAdminDatabaseConfigured } from "@/lib/supabase-admin";
+
+export const runtime = "nodejs";
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -21,7 +20,8 @@ function parseTags(value: unknown) {
   if (Array.isArray(value)) {
     return value
       .map((tag) => normalizeText(tag, 40))
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, 20);
   }
 
   if (typeof value === "string") {
@@ -46,10 +46,16 @@ function slugify(value: string) {
   return slug || "untitled-draft";
 }
 
-export async function POST(request: Request) {
-  if (!isAdminWriteConfigured) {
+export async function POST(request: NextRequest) {
+  const isAuthenticated = await hasAdminSessionFromRequest(request);
+
+  if (!isAuthenticated) {
+    return unauthorizedAdminResponse();
+  }
+
+  if (!isAdminDatabaseConfigured) {
     return errorResponse(
-      "관리자 글 작성 기능을 사용하려면 SUPABASE_SERVICE_ROLE_KEY와 ADMIN_WRITE_SECRET이 필요합니다.",
+      "관리자 글 작성 기능을 사용하려면 Supabase 환경변수를 설정해야 합니다.",
       503,
     );
   }
@@ -61,7 +67,6 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const secret = normalizeText(body.secret, 200);
   const title = normalizeText(body.title, 200);
   const description = normalizeText(body.description, 500);
   const category = normalizeText(body.category, 80);
@@ -71,12 +76,8 @@ export async function POST(request: Request) {
   const slug = slugify(normalizeText(body.slug || body.title, 200));
   const tags = parseTags(body.tags);
 
-  if (!isAdminSecretValid(secret)) {
-    return errorResponse("관리자 비밀번호가 올바르지 않습니다.", 403);
-  }
-
   if (!title || !description || !content) {
-    return errorResponse("제목, 요약, 본문은 필수입니다.", 400);
+    return errorResponse("제목, 설명, 본문은 필수입니다.", 400);
   }
 
   const payload = {
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === "23505") {
-      return errorResponse("같은 slug가 이미 존재합니다. slug를 바꿔주세요.", 409);
+      return errorResponse("같은 slug가 이미 존재합니다. 제목을 조정해 주세요.", 409);
     }
 
     return errorResponse(error.message, 500);

@@ -37,9 +37,7 @@ function normalizeText(value: unknown) {
 
 function normalizeTags(tags: unknown) {
   if (Array.isArray(tags)) {
-    return tags
-      .map((tag) => normalizeText(tag))
-      .filter(Boolean);
+    return tags.map((tag) => normalizeText(tag)).filter(Boolean);
   }
 
   if (typeof tags === "string") {
@@ -69,8 +67,8 @@ function mapSupabasePost(post: SupabasePostRecord, contentHtml?: string): PostDa
   };
 }
 
-export function getPostSourceLabel() {
-  return isSupabaseConfigured ? "Supabase Live Data" : "Supabase Environment Missing";
+function shouldLogPostError() {
+  return process.env.NODE_ENV === "development" && isSupabaseConfigured;
 }
 
 export async function getPostData(slug: string): Promise<PostData | null> {
@@ -87,7 +85,9 @@ export async function getPostData(slug: string): Promise<PostData | null> {
     .single();
 
   if (error || !post) {
-    console.error("글 조회 실패:", error);
+    if (shouldLogPostError()) {
+      console.error("포스트 조회 실패:", error);
+    }
     return null;
   }
 
@@ -109,7 +109,9 @@ export async function getSortedPostsData(): Promise<PostData[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("목록 조회 실패:", error);
+    if (shouldLogPostError()) {
+      console.error("포스트 목록 조회 실패:", error);
+    }
     return [];
   }
 

@@ -16,7 +16,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/blog"
-          className="mt-8 inline-flex rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-white"
+          className="mt-8 inline-flex rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-[color:var(--on-foreground)]"
         >
           블로그 목록 보기
         </Link>
