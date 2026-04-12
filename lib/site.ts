@@ -25,6 +25,14 @@ export function formatShortDate(date: string) {
   }).format(new Date(date));
 }
 
+export function decodeRouteParam(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export function getPlainTextExcerpt(content: string, maxLength = 140) {
   const stripped = content
     .replace(/<[^>]+>/g, " ")

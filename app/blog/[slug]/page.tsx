@@ -5,7 +5,7 @@ import CommentSection from "@/components/CommentSection";
 import PostAiAssistant from "@/components/PostAiAssistant";
 import { isAiConfigured } from "@/lib/ai";
 import { getPostData, getSortedPostsData } from "@/lib/posts";
-import { absoluteUrl, formatLongDate, siteConfig } from "@/lib/site";
+import { absoluteUrl, decodeRouteParam, formatLongDate, siteConfig } from "@/lib/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -13,7 +13,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostData(slug);
+  const post = await getPostData(decodeRouteParam(slug));
 
   if (!post) {
     return { title: "글을 찾을 수 없음" };
@@ -50,7 +50,7 @@ export async function generateStaticParams() {
 
 export default async function BlogPost({ params }: Props) {
   const { slug } = await params;
-  const post = await getPostData(slug);
+  const post = await getPostData(decodeRouteParam(slug));
 
   if (!post) {
     notFound();

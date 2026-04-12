@@ -1,7 +1,7 @@
 import { remark } from "remark";
 import html from "remark-html";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import { getPlainTextExcerpt, getReadingTimeMinutes } from "@/lib/site";
+import { decodeRouteParam, getPlainTextExcerpt, getReadingTimeMinutes } from "@/lib/site";
 
 type SupabasePostRecord = {
   id: number | string;
@@ -73,6 +73,7 @@ function shouldLogPostError() {
 
 export async function getPostData(slug: string): Promise<PostData | null> {
   const supabase = getSupabaseClient();
+  const normalizedSlug = decodeRouteParam(slug);
 
   if (!supabase) {
     return null;
@@ -81,7 +82,7 @@ export async function getPostData(slug: string): Promise<PostData | null> {
   const { data: post, error } = await supabase
     .from("posts")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", normalizedSlug)
     .single();
 
   if (error || !post) {

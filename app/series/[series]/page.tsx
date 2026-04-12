@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FilterablePostList from "@/components/FilterablePostList";
 import { getSortedPostsData, getUniqueSeries } from "@/lib/posts";
+import { decodeRouteParam } from "@/lib/site";
 
 type Props = {
   params: Promise<{ series: string }>;
@@ -9,9 +10,11 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { series } = await params;
+  const normalizedSeries = decodeRouteParam(series);
+
   return {
-    title: series,
-    description: `${series} 시리즈 글 목록입니다.`,
+    title: normalizedSeries,
+    description: `${normalizedSeries} 시리즈 글 목록입니다.`,
   };
 }
 
@@ -22,8 +25,9 @@ export async function generateStaticParams() {
 
 export default async function SeriesPage({ params }: Props) {
   const { series } = await params;
+  const normalizedSeries = decodeRouteParam(series);
   const posts = await getSortedPostsData();
-  const seriesPosts = posts.filter((post) => post.series === series);
+  const seriesPosts = posts.filter((post) => post.series === normalizedSeries);
 
   if (seriesPosts.length === 0) {
     notFound();
@@ -33,13 +37,15 @@ export default async function SeriesPage({ params }: Props) {
     <div className="mx-auto flex max-w-3xl flex-col gap-10 px-4 py-12 sm:px-6">
       <section>
         <p className="text-sm text-[color:var(--muted)]">Series archive</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em]">{series}</h1>
+        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em]">
+          {normalizedSeries}
+        </h1>
         <p className="mt-4 text-base leading-8 text-[color:var(--muted)]">
-          같은 흐름으로 이어지는 글만 모아 볼 수 있습니다.
+          같은 시리즈로 이어지는 글만 모아 볼 수 있습니다.
         </p>
       </section>
 
-      <FilterablePostList posts={seriesPosts} lockedSeries={series} />
+      <FilterablePostList posts={seriesPosts} lockedSeries={normalizedSeries} />
     </div>
   );
 }
