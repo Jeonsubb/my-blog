@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FilterablePostList from "@/components/FilterablePostList";
-import { getSortedPostsData, getUniqueSeries } from "@/lib/posts";
+import { getSortedPostsData } from "@/lib/posts";
 import { decodeRouteParam } from "@/lib/site";
 
 type Props = {
   params: Promise<{ series: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { series } = await params;
@@ -16,11 +18,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: normalizedSeries,
     description: `${normalizedSeries} 시리즈 글 목록입니다.`,
   };
-}
-
-export async function generateStaticParams() {
-  const posts = await getSortedPostsData();
-  return getUniqueSeries(posts).map((series) => ({ series }));
 }
 
 export default async function SeriesPage({ params }: Props) {

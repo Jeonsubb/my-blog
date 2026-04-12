@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FilterablePostList from "@/components/FilterablePostList";
-import { getSortedPostsData, getUniqueTags } from "@/lib/posts";
+import { getSortedPostsData } from "@/lib/posts";
 import { decodeRouteParam } from "@/lib/site";
 
 type Props = {
   params: Promise<{ tag: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tag } = await params;
@@ -16,11 +18,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `#${normalizedTag}`,
     description: `#${normalizedTag} 태그가 붙은 글 목록입니다.`,
   };
-}
-
-export async function generateStaticParams() {
-  const posts = await getSortedPostsData();
-  return getUniqueTags(posts).map((tag) => ({ tag }));
 }
 
 export default async function TagPage({ params }: Props) {

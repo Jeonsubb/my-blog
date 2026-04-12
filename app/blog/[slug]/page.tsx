@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import CommentSection from "@/components/CommentSection";
 import PostAiAssistant from "@/components/PostAiAssistant";
 import { isAiConfigured } from "@/lib/ai";
-import { getPostData, getSortedPostsData } from "@/lib/posts";
+import { getPostData } from "@/lib/posts";
 import { absoluteUrl, decodeRouteParam, formatLongDate, siteConfig } from "@/lib/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -41,11 +43,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: ogImage ? [ogImage] : [],
     },
   };
-}
-
-export async function generateStaticParams() {
-  const posts = await getSortedPostsData();
-  return posts.map((post) => ({ slug: post.slug }));
 }
 
 export default async function BlogPost({ params }: Props) {
