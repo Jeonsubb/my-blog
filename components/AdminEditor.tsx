@@ -200,7 +200,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="예: Next.js 관리자 페이지를 보호한 방식"
+              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -213,7 +213,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              placeholder="Engineering"
+              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -228,7 +228,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={series}
               onChange={(event) => setSeries(event.target.value)}
-              placeholder="블로그 운영기"
+              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -241,7 +241,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
               type="text"
               value={tags}
               onChange={(event) => setTags(event.target.value)}
-              placeholder="nextjs, security, ai"
+              
               className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
             />
           </label>
@@ -254,7 +254,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="글 목록과 SEO 메타 설명에 들어갈 짧은 문장을 입력합니다."
+            
             className="h-28 w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           />
         </label>
@@ -267,7 +267,7 @@ export default function AdminEditor({ isAiEnabled }: Props) {
             type="text"
             value={thumbnail}
             onChange={(event) => setThumbnail(event.target.value)}
-            placeholder="/images/example.png"
+            
             className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-4 py-3 outline-none transition focus:border-[color:var(--foreground)]"
           />
         </label>
