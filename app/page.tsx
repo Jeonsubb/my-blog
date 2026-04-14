@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getSortedPostsData } from "@/lib/posts";
 import { formatLongDate } from "@/lib/site";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const posts = await getSortedPostsData();
   const featuredPosts = posts.slice(0, 6);
