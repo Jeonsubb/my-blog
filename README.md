@@ -5,7 +5,7 @@ Next.js App Router와 Supabase를 기반으로 글 작성, 공개 포스트 조�
 
 배포 주소: `https://www.jeonsubb.com`
 
-## 핵심 포인트
+## 포인트
 
 - 미니멀한 개인 기술 블로그 UI
 - Supabase 기반 포스트/댓글 데이터 구조
@@ -58,7 +58,6 @@ GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash
 # 선택
 # GOOGLE_GENERATIVE_AI_BASE_URL=https://your-proxy-endpoint
 
-# 기존 OPENAI_* 이름도 잠시 호환되지만, Gemini 사용 시 위 변수명을 권장합니다.
 ```
 
 `ADMIN_PASSWORD_HASH`는 bcrypt 해시라 `$` 문자가 포함됩니다.  
