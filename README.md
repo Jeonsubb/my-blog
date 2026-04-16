@@ -3,7 +3,7 @@
 개인 기술 블로그 플랫폼입니다.  
 Next.js App Router와 Supabase를 기반으로 글 작성, 공개 포스트 조회, 댓글, 관리자 인증, AI 보조 기능을 함께 다룹니다.
 
-배포 주소: `(https://www.jeonsubb.com/)`
+배포 주소: `https://www.jeonsubb.com`
 
 ## 핵심 포인트
 
