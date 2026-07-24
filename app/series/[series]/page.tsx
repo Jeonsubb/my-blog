@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FilterablePostList from "@/components/FilterablePostList";
 import { getSortedPostsData } from "@/lib/posts";
-import { decodeRouteParam } from "@/lib/site";
+import { absoluteUrl, decodeRouteParam } from "@/lib/site";
 
 type Props = {
   params: Promise<{ series: string }>;
@@ -13,10 +13,22 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { series } = await params;
   const normalizedSeries = decodeRouteParam(series);
+  const title = normalizedSeries;
+  const description = `${normalizedSeries} 시리즈 글 목록입니다.`;
+  const pageUrl = absoluteUrl(`/series/${encodeURIComponent(normalizedSeries)}`);
 
   return {
-    title: normalizedSeries,
-    description: `${normalizedSeries} 시리즈 글 목록입니다.`,
+    title,
+    description,
+    alternates: {
+      canonical: pageUrl,
+    },
+    openGraph: {
+      type: "website",
+      url: pageUrl,
+      title,
+      description,
+    },
   };
 }
 

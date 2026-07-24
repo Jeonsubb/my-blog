@@ -44,6 +44,8 @@ Next.js App Router와 Supabase를 기반으로 글 작성, 공개 포스트 조�
 루트에 `.env.local` 파일을 만들고 아래 값을 설정합니다.
 
 ```bash
+SITE_URL=https://www.jeonsubb.com
+
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_or_publishable_key
 # 또는
@@ -59,6 +61,9 @@ GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash
 # GOOGLE_GENERATIVE_AI_BASE_URL=https://your-proxy-endpoint
 
 ```
+
+`SITE_URL`은 canonical URL, Open Graph URL, `robots.txt`, `sitemap.xml`의
+기준 주소로 사용됩니다. 값을 생략하면 `https://www.jeonsubb.com`을 사용합니다.
 
 `ADMIN_PASSWORD_HASH`는 bcrypt 해시라 `$` 문자가 포함됩니다.  
 Next 환경변수에서 값이 깨지지 않도록 `.env.local`에는 `\$`로 이스케이프해서 넣는 것을 권장합니다.
@@ -121,6 +126,7 @@ alter table posts add column if not exists tags text[] default '{}';
 
 Vercel Project Settings > Environment Variables에 아래 값을 등록합니다.
 
+- `SITE_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` 또는 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`

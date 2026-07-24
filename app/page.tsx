@@ -1,8 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getSortedPostsData } from "@/lib/posts";
-import { formatLongDate } from "@/lib/site";
+import { absoluteUrl, formatLongDate } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+};
 
 export default async function Home() {
   const posts = await getSortedPostsData();

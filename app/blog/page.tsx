@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
 import FilterablePostList from "@/components/FilterablePostList";
 import { getSortedPostsData } from "@/lib/posts";
+import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Blog",
   description: "구현 기록과 기술 메모를 모아둔 글 목록입니다.",
+  alternates: {
+    canonical: absoluteUrl("/blog"),
+  },
+  openGraph: {
+    type: "website",
+    url: absoluteUrl("/blog"),
+    title: "Blog",
+    description: "구현 기록과 기술 메모를 모아둔 글 목록입니다.",
+  },
 };
 
 export default async function Blog() {
