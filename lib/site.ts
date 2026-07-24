@@ -1,7 +1,17 @@
+const DEFAULT_SITE_URL = "https://www.jeonsubb.com";
+
+function normalizeSiteUrl(value?: string) {
+  try {
+    return new URL(value || DEFAULT_SITE_URL).origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
 export const siteConfig = {
   name: "전섭의 블로그",
   description: "꾸준히 성장하는 개발자를 지향하며 구현과 설계를 기록하는 기술 블로그입니다.",
-  url: "https://my-blog-xi-flame.vercel.app",
+  url: normalizeSiteUrl(process.env.SITE_URL),
   author: "전섭",
 };
 
