@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "hash:admin-password": "node scripts/hash-admin-password.mjs"
+    "hash:admin-password": "node scripts/hash-admin-password.mjs",
+    "study:preview": "node scripts/publish-study-post.mjs",
+    "study:publish": "node scripts/publish-study-post.mjs --publish",
+    "test:study-pipeline": "node --test tests/publish-study-post.test.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.158",
     "bcryptjs": "^3.0.3",
     "next": "16.2.0",

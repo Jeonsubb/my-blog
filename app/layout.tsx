@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
@@ -33,6 +34,25 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
+  },
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteConfig.name,
+  url: siteConfig.url,
+  description: siteConfig.description,
+  inLanguage: "ko-KR",
+  publisher: {
+    "@type": "Person",
+    name: siteConfig.author,
+    url: siteConfig.url,
+  },
 };
 
 export default function RootLayout({
@@ -57,11 +77,16 @@ export default function RootLayout({
             document.documentElement.dataset.theme = "light";
           }`}
         </Script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <div className="relative min-h-screen">
           <Navbar />
           <main>{children}</main>
           <SiteFooter />
         </div>
+        <Analytics />
       </body>
     </html>
   );

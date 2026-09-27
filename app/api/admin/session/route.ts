@@ -6,6 +6,7 @@ import {
   getAdminSessionClearingOptions,
   getAdminSessionCookieOptions,
 } from "@/lib/admin-session";
+import { recordTrafficLog } from "@/lib/traffic-log";
 
 export const runtime = "nodejs";
 
@@ -33,10 +34,26 @@ export async function POST(request: NextRequest) {
   }
 
   const isValid = await verifyAdminPassword(password);
+  const userAgent = request.headers.get("user-agent");
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
 
   if (!isValid) {
+    await recordTrafficLog({
+      kind: "admin_login_failure",
+      path: "/api/admin/session",
+      userAgent,
+      ip,
+    });
+
     return NextResponse.json({ error: "인증에 실패했습니다." }, { status: 401 });
   }
+
+  await recordTrafficLog({
+    kind: "admin_login_success",
+    path: "/api/admin/session",
+    userAgent,
+    ip,
+  });
 
   const token = await createAdminSessionToken();
 

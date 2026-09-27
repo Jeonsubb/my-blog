@@ -37,13 +37,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: siteConfig.name,
       title: post.title,
       description: post.description,
-      images: ogImage ? [{ url: ogImage }] : [],
+      // 썸네일이 없으면 undefined로 두어 app/opengraph-image.tsx 기본 이미지가 적용된다.
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title: post.title,
       description: post.description,
-      images: ogImage ? [ogImage] : [],
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
@@ -56,8 +57,39 @@ export default async function BlogPost({ params }: Props) {
     notFound();
   }
 
+  const postUrl = absoluteUrl(`/blog/${post.slug}`);
+  const postJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    url: postUrl,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": postUrl,
+    },
+    datePublished: post.created_at,
+    dateModified: post.created_at,
+    inLanguage: "ko-KR",
+    author: {
+      "@type": "Person",
+      name: siteConfig.author,
+      url: siteConfig.url,
+    },
+    publisher: {
+      "@type": "Person",
+      name: siteConfig.author,
+    },
+    image: [post.thumbnail ? absoluteUrl(post.thumbnail) : absoluteUrl("/opengraph-image")],
+    keywords: post.tags.join(", "),
+  };
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10 px-4 py-12 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(postJsonLd) }}
+      />
       <section className="border-b border-[color:var(--border)] pb-8">
         <Link
           href="/blog"

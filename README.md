@@ -87,6 +87,46 @@ npm run dev
 
 관리자 로그인 화면은 `http://localhost:3000/admin/login` 입니다.
 
+## 스터디 기록 자동 게시
+
+`../financial-it-study/blog-posts/*.md`에 보관한 Markdown 문서를 이 블로그의
+Supabase `posts` 테이블로 등록하거나 수정할 수 있습니다.
+
+```bash
+# 글 형식과 게시 경로만 확인합니다. 인증 정보가 없어도 실행됩니다.
+npm run study:preview -- day-01-java-basics
+
+# .env.local의 Supabase 관리자 키로 실제 게시합니다.
+npm run study:publish -- day-01-java-basics
+
+# 전체 글을 순서대로 게시하거나 수정합니다.
+npm run study:publish -- --all
+
+# 외부 네트워크 없이 파이프라인 동작을 검증합니다.
+npm run test:study-pipeline
+```
+
+실제 게시에는 `.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`과
+`SUPABASE_SERVICE_ROLE_KEY`가 필요합니다. 서비스 키는 Git에 커밋하지 않습니다.
+이미 같은 `slug`가 존재하면 중복 글을 만들지 않고 기존 글을 수정합니다.
+
+Markdown 파일은 아래 형식을 사용합니다.
+
+```markdown
+---
+title: 금융 IT Day 1 — Java 기본기
+slug: financial-it-day-01-java-basics
+description: 계좌 도메인으로 Java 기본기를 공부한다.
+category: Financial IT
+series: 금융 IT 30일 학습
+tags: java, collections, fintech
+---
+
+## 본문
+
+공부한 내용을 작성합니다.
+```
+
 ## AI 기능 사용 방법
 
 ### 관리자 에디터
@@ -135,3 +175,28 @@ Vercel Project Settings > Environment Variables에 아래 값을 등록합니다
 - `GOOGLE_GENERATIVE_AI_API_KEY`
 - `GOOGLE_GENERATIVE_AI_MODEL`
 - `GOOGLE_GENERATIVE_AI_BASE_URL` (사용하는 경우만)
+
+## 방문 로그 / 크롤러 / 보안 이벤트 확인
+
+1. Supabase 대시보드의 SQL Editor에서 `scripts/sql/traffic-logs.sql` 내용을 한 번 실행해
+   `traffic_logs` 테이블을 만듭니다.
+2. 배포하면 `middleware.ts`가 검색엔진과 AI 크롤러의 방문을 기록하고,
+   로그인 API가 관리자 로그인 성공/실패를 기록합니다.
+3. 관리자로 로그인한 뒤 `/admin/stats`에서 크롤러별 방문 횟수와 로그인 이벤트를 확인합니다.
+4. 방문자 통계는 Vercel 대시보드의 Analytics 탭에서 "Enable"을 눌러야 수집이 시작됩니다.
+   (`@vercel/analytics` 패키지는 이미 설치되어 있습니다.)
+
+## Projects 페이지
+
+`/projects`는 GitHub 계정(Jeonsubb)의 공개 저장소 목록을 1시간 간격 캐시로 보여줍니다.
+로컬에만 있는 포트폴리오 프로젝트도 GitHub에 올리면 자동으로 이 페이지에 나타납니다.
+
+## RSS와 구조화 데이터
+
+- RSS 피드: `https://www.jeonsubb.com/feed.xml`
+- 각 글에는 JSON-LD(BlogPosting) 구조화 데이터가 포함되어 검색엔진과 AI 검색이
+  글의 제목, 작성일, 작성자를 정확히 인식합니다.
+
+## Spring Boot 전환 계획
+
+`docs/SPRING-MIGRATION-PLAN.md`에 단계별 로드맵이 정리되어 있습니다.
