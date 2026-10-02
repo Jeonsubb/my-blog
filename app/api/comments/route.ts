@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 
@@ -20,12 +21,21 @@ function parseCommentId(value: unknown) {
 }
 
 function hashCommentPassword(password: string) {
-  return createHash("sha256").update(password).digest("hex");
+  return bcrypt.hash(password, 10);
 }
 
-function isPasswordValid(storedPassword: string, inputPassword: string) {
-  const hashedInput = hashCommentPassword(inputPassword);
-  return storedPassword === inputPassword || storedPassword === hashedInput;
+function isBcryptHash(value: string) {
+  return value.startsWith("$2");
+}
+
+async function isPasswordValid(storedPassword: string, inputPassword: string) {
+  if (isBcryptHash(storedPassword)) {
+    return bcrypt.compare(inputPassword, storedPassword);
+  }
+
+  // bcrypt 도입 이전에 저장된 SHA-256 해시 또는 평문과의 하위 호환.
+  const legacySha256 = createHash("sha256").update(inputPassword).digest("hex");
+  return storedPassword === inputPassword || storedPassword === legacySha256;
 }
 
 export async function GET(request: Request) {
@@ -79,7 +89,7 @@ export async function POST(request: Request) {
         post_id: postId,
         content,
         username,
-        password: hashCommentPassword(password),
+        password: await hashCommentPassword(password),
       },
     ])
     .select("id, content, username, created_at");
@@ -116,7 +126,7 @@ export async function DELETE(request: Request) {
     return errorResponse("댓글을 찾을 수 없습니다.", 404);
   }
 
-  if (!isPasswordValid(comment.password, password)) {
+  if (!(await isPasswordValid(comment.password, password))) {
     return errorResponse("비밀번호가 올바르지 않습니다.", 403);
   }
 
@@ -155,13 +165,20 @@ export async function PATCH(request: Request) {
     return errorResponse("댓글을 찾을 수 없습니다.", 404);
   }
 
-  if (!isPasswordValid(comment.password, password)) {
+  if (!(await isPasswordValid(comment.password, password))) {
     return errorResponse("비밀번호가 올바르지 않습니다.", 403);
+  }
+
+  // 구형 해시로 저장된 댓글은 검증에 성공한 이 시점에 bcrypt 해시로 교체한다.
+  const updatePayload: { content: string; password?: string } = { content: newContent };
+
+  if (!isBcryptHash(comment.password)) {
+    updatePayload.password = await hashCommentPassword(password);
   }
 
   const { error } = await supabase
     .from("comments")
-    .update({ content: newContent })
+    .update(updatePayload)
     .eq("id", commentId);
 
   if (error) {
