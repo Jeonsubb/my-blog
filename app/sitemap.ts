@@ -2,6 +2,8 @@ import { MetadataRoute } from "next";
 import { getSortedPostsData, getUniqueSeries, getUniqueTags, type PostData } from "@/lib/posts";
 import { siteConfig } from "@/lib/site";
 
+export const revalidate = 300;
+
 function latestCreatedAt(posts: PostData[], fallback: Date) {
   return posts[0] ? new Date(posts[0].created_at) : fallback;
 }

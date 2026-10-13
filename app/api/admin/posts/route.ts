@@ -120,6 +120,7 @@ function revalidatePostPaths(slugs: string[]) {
   revalidatePath("/tags/[tag]", "page");
   revalidatePath("/series/[series]", "page");
   revalidatePath("/sitemap.xml");
+  revalidatePath("/feed.xml");
 
   for (const slug of uniqueSlugs) {
     revalidatePath(`/blog/${slug}`);

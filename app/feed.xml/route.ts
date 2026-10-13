@@ -1,7 +1,7 @@
 import { getSortedPostsData } from "@/lib/posts";
 import { siteConfig } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 function escapeXml(value: string) {
   return value

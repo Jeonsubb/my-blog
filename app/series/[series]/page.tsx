@@ -8,7 +8,11 @@ type Props = {
   params: Promise<{ series: string }>;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { series } = await params;

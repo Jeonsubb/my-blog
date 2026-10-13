@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getSortedPostsData } from "@/lib/posts";
 import { absoluteUrl, formatLongDate } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   alternates: {
