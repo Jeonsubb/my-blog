@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>my-blog 아키텍처 해설</title>
+<style>
+  :root {
+    --bg: #fafaf9; --fg: #1c1917; --muted: #57534e; --border: #e7e5e4; --card: #ffffff;
+    --code-bg: #f5f5f4; --accent: #2563eb;
+    --c-client: #dbeafe; --c-client-b: #3b82f6;
+    --c-edge: #fef3c7; --c-edge-b: #d97706;
+    --c-server: #dcfce7; --c-server-b: #16a34a;
+    --c-lib: #f3e8ff; --c-lib-b: #9333ea;
+    --c-ext: #fee2e2; --c-ext-b: #dc2626;
+    --warn: #b45309; --danger: #b91c1c; --ok: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0a09; --fg: #e7e5e4; --muted: #a8a29e; --border: #292524; --card: #1c1917;
+      --code-bg: #292524; --accent: #60a5fa;
+      --c-client: #172554; --c-edge: #451a03; --c-server: #052e16; --c-lib: #3b0764; --c-ext: #450a0a;
+      --warn: #fbbf24; --danger: #f87171; --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.75 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 32px; letter-spacing: -0.03em; margin: 0 0 8px; }
+  h2 { font-size: 22px; letter-spacing: -0.02em; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; margin: 28px 0 10px; }
+  p { margin: 8px 0; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  nav.toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+  nav.toc ol { margin: 0; padding-left: 20px; columns: 2; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  code { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  .ln { color: var(--muted); user-select: none; display: inline-block; width: 3.2em; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 14px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .stat b { display: block; font-size: 26px; letter-spacing: -0.02em; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .warn { color: var(--warn); font-weight: 600; } .danger { color: var(--danger); font-weight: 600; } .ok { color: var(--ok); font-weight: 600; }
+  .diagram { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; min-width: 960px; width: 100%; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.5px solid; }
+  /* 시퀀스 흐름 */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+  .step { display: grid; grid-template-columns: 28px 1fr; gap: 12px; position: relative; padding-bottom: 14px; }
+  .step::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--border); }
+  .step:last-child::before { display: none; }
+  .step .n { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+  .step .body { padding-top: 2px; }
+  .step .where { font-size: 13px; color: var(--muted); }
+  svg text { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: var(--fg); }
+  svg .box-client { fill: var(--c-client); stroke: var(--c-client-b); }
+  svg .box-edge   { fill: var(--c-edge);   stroke: var(--c-edge-b); }
+  svg .box-server { fill: var(--c-server); stroke: var(--c-server-b); }
+  svg .box-lib    { fill: var(--c-lib);    stroke: var(--c-lib-b); }
+  svg .box-ext    { fill: var(--c-ext);    stroke: var(--c-ext-b); }
+  svg .zone { fill: none; stroke: var(--muted); stroke-dasharray: 6 5; }
+  svg .arrow { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#ah); }
+  svg .arrow-a { stroke: var(--c-edge-b); stroke-width: 1.6; fill: none; marker-end: url(#ah2); stroke-dasharray: 5 4; }
+  svg .small { font-size: 11px; fill: var(--muted); }
+  svg .title { font-size: 13px; font-weight: 700; }
+  svg .zt { font-size: 12px; font-weight: 700; fill: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>my-blog 아키텍처 해설</h1>
+<p class="sub">2026-10-18 기준 · <code>main</code> 브랜치(커밋 <code>a11502f</code>)의 코드를 직접 읽고 작성했습니다. 줄 번호는 이 시점의 파일 기준입니다.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#overview">한눈에 보기</a></li>
+    <li><a href="#arch">전체 아키텍처 설계도</a></li>
+    <li><a href="#layers">레이어와 파일 구조</a></li>
+    <li><a href="#flow-read">흐름 ① 공개 글 읽기 (ISR)</a></li>
+    <li><a href="#flow-admin">흐름 ② 관리자 인증과 글쓰기</a></li>
+    <li><a href="#flow-comment">흐름 ③ 익명 댓글</a></li>
+    <li><a href="#flow-ai">흐름 ④ AI 보조 기능</a></li>
+    <li><a href="#flow-obs">흐름 ⑤ 트래픽 로그와 관측</a></li>
+    <li><a href="#flow-publish">흐름 ⑥ CLI 게시 파이프라인</a></li>
+    <li><a href="#data">데이터 모델</a></li>
+    <li><a href="#env">환경변수와 Supabase 키 사용처</a></li>
+    <li><a href="#issues">현재 구조의 약점과 개선 방향</a></li>
+  </ol>
+</nav>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="overview">1. 한눈에 보기</h2>
+<p>이 블로그는 <b>Next.js 16 App Router 단일 애플리케이션</b>입니다. 화면 렌더링과 API가 하나의 프로젝트 안에 함께 있고, Vercel에 서버리스 형태로 배포됩니다. 별도의 백엔드 서버는 없으며, 데이터는 전부 <b>Supabase(PostgreSQL)</b>에 저장됩니다.</p>
+
+<div class="grid">
+  <div class="card stat"><b>약 4,900줄</b><span>TS/TSX/MJS/SQL/CSS 합계</span></div>
+  <div class="card stat"><b>5개</b><span>API 라우트 (<code>app/api/**/route.ts</code>)</span></div>
+  <div class="card stat"><b>3개 테이블</b><span>posts · comments · traffic_logs</span></div>
+  <div class="card stat"><b>3개 외부 서비스</b><span>Supabase · Google Gemini · GitHub API</span></div>
+</div>
+
+<table>
+  <tr><th>영역</th><th>기술</th><th>비고</th></tr>
+  <tr><td>프레임워크</td><td>Next.js 16.2 (App Router), React 19.2, TypeScript</td><td>서버 컴포넌트 중심 구조입니다.</td></tr>
+  <tr><td>스타일</td><td>Tailwind CSS v4, @tailwindcss/typography</td><td>다크 모드는 <code>data-theme</code> 속성으로 전환합니다.</td></tr>
+  <tr><td>DB</td><td>Supabase (<code>@supabase/supabase-js</code>)</td><td>anon 키와 service-role 키를 용도별로 나눠 사용합니다.</td></tr>
+  <tr><td>Markdown</td><td>remark + remark-html</td><td>서버에서 HTML로 변환한 뒤 렌더링합니다.</td></tr>
+  <tr><td>인증</td><td>bcryptjs + HMAC-SHA256 서명 쿠키</td><td>JWT 라이브러리 없이 직접 구현했습니다.</td></tr>
+  <tr><td>AI</td><td>Vercel AI SDK (<code>ai</code>) + <code>@ai-sdk/google</code></td><td>기본 모델은 <code>gemini-2.5-flash</code>입니다.</td></tr>
+  <tr><td>관측</td><td>@vercel/analytics, 자체 <code>traffic_logs</code> 테이블</td><td>Grafana, Sentry 같은 APM은 없습니다.</td></tr>
+  <tr><td>배포</td><td>Vercel</td><td>Docker, Redis, 쿠버네티스 구성은 없습니다.</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="arch">2. 전체 아키텍처 설계도</h2>
+<p>요청은 브라우저에서 출발해 Vercel의 미들웨어를 먼저 통과하고, 그다음 페이지(서버 컴포넌트) 또는 API 라우트로 전달됩니다. 페이지와 API는 모두 <code>lib/</code> 계층을 거쳐 외부 서비스에 접근합니다.</p>
+
+<div class="diagram">
+<svg viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#78716c"/></marker>
+    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker>
+  </defs>
+
+  <!-- 브라우저 -->
+  <rect class="zone" x="10" y="10" width="980" height="96" rx="12"/>
+  <text class="zt" x="24" y="30">BROWSER (클라이언트 컴포넌트)</text>
+  <rect class="box-client" x="30" y="40" width="170" height="54" rx="8" stroke-width="1.5"/>
+  <text class="title" x="115" y="62" text-anchor="middle">방문자</text>
+  <text class="small" x="115" y="80" text-anchor="middle">검색엔진·AI 크롤러 포함</text>
+  <rect class="box-client" x="220" y="40" width="170" height="54" rx="8" stroke-width="1.5"/>
+  <text class="title" x="305" y="62" text-anchor="middle">CommentSection</text>
+  <text class="small" x="305" y="80" text-anchor="middle">댓글 CRUD</text>
+  <rect class="box-client" x="410" y="40" width="170" height="54" rx="8" stroke-width="1.5"/>
+  <text class="title" x="495" y="62" text-anchor="middle">PostAiAssistant</text>
+  <text class="small" x="495" y="80" text-anchor="middle">3줄 요약·읽기 가이드</text>
+  <rect class="box-client" x="600" y="40" width="170" height="54" rx="8" stroke-width="1.5"/>
+  <text class="title" x="685" y="62" text-anchor="middle">AdminEditor</text>
+  <text class="small" x="685" y="80" text-anchor="middle">글 작성·수정·AI 보조</text>
+  <rect class="box-client" x="790" y="40" width="180" height="54" rx="8" stroke-width="1.5"/>
+  <text class="title" x="880" y="62" text-anchor="middle">AdminLoginCard</text>
+  <text class="small" x="880" y="80" text-anchor="middle">로그인·로그아웃</text>
+
+  <!-- Vercel -->
+  <rect class="zone" x="10" y="124" width="980" height="356" rx="12"/>
+  <text class="zt" x="24" y="144">VERCEL (Next.js 16 · 서버리스 함수 + ISR 캐시)</text>
+
+  <rect class="box-edge" x="30" y="156" width="940" height="44" rx="8" stroke-width="1.5"/>
+  <text class="title" x="500" y="176" text-anchor="middle">middleware.ts</text>
+  <text class="small" x="500" y="192" text-anchor="middle">① 크롤러 UA 감지 → traffic_logs 기록(waitUntil)   ② /admin/* 세션 쿠키 검증 → 실패 시 /admin/login 리다이렉트</text>
+
+  <!-- 페이지 -->
+  <rect class="box-server" x="30" y="218" width="300" height="112" rx="8" stroke-width="1.5"/>
+  <text class="title" x="180" y="240" text-anchor="middle">공개 페이지 (서버 컴포넌트, ISR)</text>
+  <text class="small" x="44" y="262">/ · /blog · /blog/[slug]</text>
+  <text class="small" x="44" y="278">/tags/[tag] · /series/[series]</text>
+  <text class="small" x="44" y="294">/sitemap.xml · /feed.xml   revalidate=300</text>
+  <text class="small" x="44" y="310">/projects   revalidate=3600</text>
+
+  <rect class="box-server" x="350" y="218" width="250" height="112" rx="8" stroke-width="1.5"/>
+  <text class="title" x="475" y="240" text-anchor="middle">관리자 페이지</text>
+  <text class="small" x="364" y="262">/admin/login</text>
+  <text class="small" x="364" y="278">/admin/write  (세션 재확인)</text>
+  <text class="small" x="364" y="294">/admin/stats  (force-dynamic)</text>
+
+  <rect class="box-server" x="620" y="218" width="350" height="112" rx="8" stroke-width="1.5"/>
+  <text class="title" x="795" y="240" text-anchor="middle">API 라우트 (Route Handler)</text>
+  <text class="small" x="634" y="262">/api/comments        GET·POST·PATCH·DELETE   (공개)</text>
+  <text class="small" x="634" y="278">/api/ai/post           POST   (공개, 인증 없음)</text>
+  <text class="small" x="634" y="294">/api/admin/session   POST·DELETE</text>
+  <text class="small" x="634" y="310">/api/admin/posts      POST·PATCH·DELETE   /api/admin/ai</text>
+
+  <!-- lib -->
+  <rect class="box-lib" x="30" y="348" width="180" height="116" rx="8" stroke-width="1.5"/>
+  <text class="title" x="120" y="370" text-anchor="middle">lib/posts.ts</text>
+  <text class="small" x="120" y="390" text-anchor="middle">글 조회의 단일 통로</text>
+  <text class="small" x="120" y="406" text-anchor="middle">remark → HTML 변환</text>
+  <rect class="box-lib" x="222" y="348" width="180" height="116" rx="8" stroke-width="1.5"/>
+  <text class="title" x="312" y="370" text-anchor="middle">lib/supabase*.ts</text>
+  <text class="small" x="312" y="390" text-anchor="middle">supabase.ts: anon 키</text>
+  <text class="small" x="312" y="406" text-anchor="middle">supabase-admin.ts: service-role</text>
+  <text class="small" x="312" y="422" text-anchor="middle">싱글턴 클라이언트</text>
+  <rect class="box-lib" x="414" y="348" width="180" height="116" rx="8" stroke-width="1.5"/>
+  <text class="title" x="504" y="370" text-anchor="middle">lib/admin-*.ts</text>
+  <text class="small" x="504" y="390" text-anchor="middle">password: bcrypt.compare</text>
+  <text class="small" x="504" y="406" text-anchor="middle">session: HMAC 토큰</text>
+  <text class="small" x="504" y="422" text-anchor="middle">guard: API용 401 응답</text>
+  <rect class="box-lib" x="606" y="348" width="170" height="116" rx="8" stroke-width="1.5"/>
+  <text class="title" x="691" y="370" text-anchor="middle">lib/ai.ts</text>
+  <text class="small" x="691" y="390" text-anchor="middle">프롬프트 조립</text>
+  <text class="small" x="691" y="406" text-anchor="middle">generateText → JSON 파싱</text>
+  <rect class="box-lib" x="788" y="348" width="182" height="116" rx="8" stroke-width="1.5"/>
+  <text class="title" x="879" y="370" text-anchor="middle">lib/traffic-log.ts</text>
+  <text class="small" x="879" y="390" text-anchor="middle">크롤러 정규식</text>
+  <text class="small" x="879" y="406" text-anchor="middle">Supabase REST 직접 호출</text>
+  <text class="small" x="879" y="422" text-anchor="middle">실패해도 응답에 영향 없음</text>
+
+  <!-- 외부 -->
+  <rect class="zone" x="10" y="500" width="980" height="128" rx="12"/>
+  <text class="zt" x="24" y="520">EXTERNAL SERVICES</text>
+  <rect class="box-ext" x="30" y="532" width="420" height="82" rx="8" stroke-width="1.5"/>
+  <text class="title" x="240" y="556" text-anchor="middle">Supabase (PostgreSQL + PostgREST)</text>
+  <text class="small" x="240" y="576" text-anchor="middle">posts · comments · traffic_logs</text>
+  <text class="small" x="240" y="594" text-anchor="middle">RLS: traffic_logs는 service-role 전용</text>
+  <rect class="box-ext" x="470" y="532" width="230" height="82" rx="8" stroke-width="1.5"/>
+  <text class="title" x="585" y="556" text-anchor="middle">Google Gemini</text>
+  <text class="small" x="585" y="576" text-anchor="middle">gemini-2.5-flash</text>
+  <text class="small" x="585" y="594" text-anchor="middle">temperature 0.2, JSON 응답</text>
+  <rect class="box-ext" x="720" y="532" width="250" height="82" rx="8" stroke-width="1.5"/>
+  <text class="title" x="845" y="556" text-anchor="middle">GitHub REST API · Vercel Analytics</text>
+  <text class="small" x="845" y="576" text-anchor="middle">/projects 페이지가 직접 fetch (1시간 캐시)</text>
+  <text class="small" x="845" y="594" text-anchor="middle">&lt;Analytics /&gt; 페이지뷰 수집</text>
+
+  <!-- 화살표: 브라우저 → 미들웨어 -->
+  <path class="arrow" d="M115 94 V154"/>
+  <path class="arrow" d="M305 94 V154"/>
+  <path class="arrow" d="M495 94 V154"/>
+  <path class="arrow" d="M685 94 V154"/>
+  <path class="arrow" d="M880 94 V154"/>
+  <!-- 미들웨어 → 페이지/API -->
+  <path class="arrow" d="M180 200 V216"/>
+  <path class="arrow" d="M475 200 V216"/>
+  <path class="arrow" d="M795 200 V216"/>
+  <!-- 페이지/API → lib -->
+  <path class="arrow" d="M120 330 V346"/>
+  <path class="arrow" d="M475 330 L504 346"/>
+  <path class="arrow" d="M700 330 L691 346"/>
+  <path class="arrow" d="M650 330 L340 346"/>
+  <path class="arrow" d="M900 330 L879 346"/>
+  <!-- lib → 외부 -->
+  <path class="arrow" d="M120 464 L200 530"/>
+  <path class="arrow" d="M312 464 V530"/>
+  <path class="arrow" d="M691 464 L600 530"/>
+  <path class="arrow" d="M879 464 C 879 500, 500 500, 420 530"/>
+  <!-- 미들웨어 → traffic-log (비동기) -->
+  <path class="arrow-a" d="M960 200 C 990 260, 990 320, 950 346"/>
+  <text class="small" x="935" y="214">waitUntil</text>
+</svg>
+<div class="legend">
+  <span><i style="background:var(--c-client);border-color:var(--c-client-b)"></i>클라이언트 컴포넌트 (<code>"use client"</code>)</span>
+  <span><i style="background:var(--c-edge);border-color:var(--c-edge-b)"></i>미들웨어</span>
+  <span><i style="background:var(--c-server);border-color:var(--c-server-b)"></i>서버 컴포넌트 · Route Handler</span>
+  <span><i style="background:var(--c-lib);border-color:var(--c-lib-b)"></i>도메인 로직 (<code>lib/</code>)</span>
+  <span><i style="background:var(--c-ext);border-color:var(--c-ext-b)"></i>외부 서비스</span>
+  <span>점선 화살표는 응답과 무관하게 백그라운드에서 실행되는 호출입니다.</span>
+</div>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="layers">3. 레이어와 파일 구조</h2>
+<p>코드는 크게 4개 계층으로 나뉩니다. <b>화면과 API는 Supabase를 직접 부르지 않고 반드시 <code>lib/</code>를 거친다</b>는 점이 가장 중요한 설계 규칙입니다. 이 규칙 덕분에 나중에 Spring API로 전환할 때 <code>lib/posts.ts</code> 같은 파일만 교체하면 됩니다.</p>
+
+<table>
+  <tr><th>계층</th><th>파일</th><th>줄 수</th><th>역할</th></tr>
+  <tr><td rowspan="1"><span class="tag">Edge</span></td><td><code>middleware.ts</code></td><td>55</td><td>모든 요청의 관문입니다. 크롤러 로깅과 관리자 경로 보호를 담당합니다.</td></tr>
+  <tr><td rowspan="8"><span class="tag">Pages</span></td><td><code>app/layout.tsx</code></td><td>93</td><td>전역 메타데이터, WebSite JSON-LD, 테마 스크립트, Vercel Analytics를 설정합니다.</td></tr>
+  <tr><td><code>app/page.tsx</code></td><td>75</td><td>홈 화면입니다. 최신 글 6개를 보여줍니다.</td></tr>
+  <tr><td><code>app/blog/page.tsx</code></td><td>37</td><td>전체 글 목록입니다. 필터링은 <code>FilterablePostList</code>가 담당합니다.</td></tr>
+  <tr><td><code>app/blog/[slug]/page.tsx</code></td><td>175</td><td>글 상세 페이지입니다. BlogPosting JSON-LD, AI 카드, 댓글을 포함합니다.</td></tr>
+  <tr><td><code>app/tags/[tag]</code>, <code>app/series/[series]</code></td><td>64 + 64</td><td>태그·시리즈별 글 목록입니다.</td></tr>
+  <tr><td><code>app/projects/page.tsx</code></td><td>110</td><td>GitHub 공개 저장소 목록을 보여주는 포트폴리오 페이지입니다.</td></tr>
+  <tr><td><code>app/sitemap.ts</code>, <code>app/robots.ts</code>, <code>app/feed.xml/route.ts</code></td><td>52 + 15 + 53</td><td>SEO와 RSS를 담당합니다.</td></tr>
+  <tr><td><code>app/admin/{login,write,stats}</code></td><td>34 + 56 + 188</td><td>관리자 로그인, 글 에디터, 로그 대시보드입니다.</td></tr>
+  <tr><td rowspan="5"><span class="tag">API</span></td><td><code>app/api/admin/posts/route.ts</code></td><td>265</td><td>글 생성·수정·삭제와 ISR 캐시 무효화를 수행합니다.</td></tr>
+  <tr><td><code>app/api/comments/route.ts</code></td><td>189</td><td>익명 댓글 CRUD와 bcrypt 비밀번호 검증을 수행합니다.</td></tr>
+  <tr><td><code>app/api/admin/session/route.ts</code></td><td>95</td><td>로그인(쿠키 발급), 로그아웃(쿠키 삭제), 로그인 이벤트 기록을 담당합니다.</td></tr>
+  <tr><td><code>app/api/admin/ai/route.ts</code></td><td>71</td><td>관리자용 AI(요약·태그·SEO)입니다. 세션이 필요합니다.</td></tr>
+  <tr><td><code>app/api/ai/post/route.ts</code></td><td>57</td><td>공개용 AI(3줄 요약·읽기 가이드)입니다. 인증이 없습니다.</td></tr>
+  <tr><td rowspan="7"><span class="tag">lib</span></td><td><code>lib/posts.ts</code></td><td>132</td><td>글 조회, 태그·시리즈 추출, Markdown 변환을 담당합니다.</td></tr>
+  <tr><td><code>lib/ai.ts</code></td><td>287</td><td>Gemini 호출, 프롬프트 조립, JSON 응답 정규화를 담당합니다.</td></tr>
+  <tr><td><code>lib/admin-session.ts</code></td><td>154</td><td>HMAC 서명 세션 토큰의 발급·검증과 리다이렉트 검증을 담당합니다.</td></tr>
+  <tr><td><code>lib/admin-password.ts</code>, <code>lib/admin-guard.ts</code></td><td>17 + 23</td><td>비밀번호 검증과 API용 인증 가드입니다.</td></tr>
+  <tr><td><code>lib/supabase.ts</code>, <code>lib/supabase-admin.ts</code></td><td>27 + 25</td><td>권한이 다른 Supabase 클라이언트 2종입니다.</td></tr>
+  <tr><td><code>lib/traffic-log.ts</code></td><td>44</td><td>크롤러 판별과 로그 기록을 담당합니다.</td></tr>
+  <tr><td><code>lib/site.ts</code>, <code>lib/slug.ts</code></td><td>67 + 12</td><td>사이트 설정, 날짜 포맷, 읽기 시간, slug 생성 유틸리티입니다.</td></tr>
+  <tr><td rowspan="2"><span class="tag">UI</span></td><td><code>components/AdminEditor.tsx</code></td><td>737</td><td>가장 큰 파일입니다. 에디터, 미리보기, 글 목록, AI 버튼을 모두 포함합니다.</td></tr>
+  <tr><td><code>components/CommentSection.tsx</code> 외 7개</td><td>350 + …</td><td>댓글, AI 카드, 내비게이션, 테마 토글 등입니다.</td></tr>
+  <tr><td><span class="tag">Tools</span></td><td><code>scripts/publish-study-post.mjs</code>, <code>tests/</code></td><td>249 + 92</td><td>스터디 Markdown을 게시하는 CLI와 그 단위 테스트입니다.</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-read">4. 흐름 ① 공개 글 읽기 (ISR)</h2>
+<p>공개 페이지는 모두 <code>export const revalidate = 300</code>을 선언합니다. 그래서 첫 요청 때 서버가 HTML을 만들어 캐시에 저장하고, 이후 5분 동안은 DB를 조회하지 않고 캐시된 HTML을 그대로 응답합니다. 이 구조는 커밋 <code>a11502f</code>에서 <code>force-dynamic</code>을 대체하며 도입되었습니다.</p>
+
+<div class="flow">
+  <div class="step"><div class="n">1</div><div class="body"><b>방문자가 <code>/blog/some-slug</code>를 요청합니다.</b><div class="where"><code>middleware.ts:14-28</code> 크롤러가 아니면 로그 없이 <code>NextResponse.next()</code>로 통과시킵니다.</div></div></div>
+  <div class="step"><div class="n">2</div><div class="body"><b>ISR 캐시를 확인합니다.</b><div class="where"><code>app/blog/[slug]/page.tsx:14-18</code> <code>revalidate = 300</code>이고, <code>generateStaticParams</code>가 빈 배열이므로 빌드 시에는 아무 글도 미리 만들지 않고 첫 요청 때 생성합니다.</div></div></div>
+  <div class="step"><div class="n">3</div><div class="body"><b>캐시가 없거나 만료되었으면 글을 조회합니다.</b><div class="where"><code>lib/posts.ts:74-98</code> <code>getPostData()</code>가 anon 키 클라이언트로 <code>posts</code> 테이블에서 slug를 조회하고, <code>remark().use(html)</code>로 본문을 HTML로 변환합니다.</div></div></div>
+  <div class="step"><div class="n">4</div><div class="body"><b>메타데이터와 구조화 데이터를 만듭니다.</b><div class="where"><code>page.tsx:20-54</code> canonical, Open Graph, Twitter 카드를 생성합니다. <code>page.tsx:65-89</code>는 BlogPosting JSON-LD를 생성합니다.</div></div></div>
+  <div class="step"><div class="n">5</div><div class="body"><b>HTML을 렌더링하고, 클라이언트 컴포넌트를 붙입니다.</b><div class="where"><code>page.tsx:159-172</code> 본문은 <code>dangerouslySetInnerHTML</code>로 삽입하고, 하단에 <code>PostAiAssistant</code>와 <code>CommentSection</code>을 배치합니다. 댓글은 브라우저에서 따로 불러오므로 캐시와 무관하게 항상 최신 상태입니다.</div></div></div>
+</div>
+
+<pre><code><span class="ln">74</span>export async function getPostData(slug: string): Promise&lt;PostData | null&gt; {
+<span class="ln">75</span>  const supabase = getSupabaseClient();
+<span class="ln">76</span>  const normalizedSlug = decodeRouteParam(slug);
+<span class="ln">  </span>  ...
+<span class="ln">82</span>  const { data: post, error } = await supabase
+<span class="ln">83</span>    .from("posts")
+<span class="ln">84</span>    .select("*")
+<span class="ln">85</span>    .eq("slug", normalizedSlug)
+<span class="ln">86</span>    .single();
+<span class="ln">  </span>  ...
+<span class="ln">95</span>  const processedContent = await remark().use(html).process(post.content);
+<span class="ln">97</span>  return mapSupabasePost(post, processedContent.toString());
+<span class="ln">98</span>}</code></pre>
+<p class="where" style="color:var(--muted);font-size:13px"><code>lib/posts.ts</code> · 목록 페이지는 같은 파일의 <code>getSortedPostsData()</code>(100-120행)를 사용하고, 태그와 시리즈 목록은 <code>getUniqueTags</code>, <code>getUniqueSeries</code>(122-132행)로 메모리에서 추출합니다.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-admin">5. 흐름 ② 관리자 인증과 글쓰기</h2>
+<p>관리자는 한 명뿐이므로 계정 테이블 없이 <b>환경변수에 저장된 bcrypt 해시 하나</b>로 인증합니다. 로그인에 성공하면 서버가 HMAC-SHA256으로 서명한 토큰을 <code>httpOnly</code> 쿠키로 발급합니다. 구조는 JWT와 같지만 라이브러리 없이 Web Crypto API로 직접 구현했습니다.</p>
+
+<h3>로그인</h3>
+<div class="flow">
+  <div class="step"><div class="n">1</div><div class="body"><b>비밀번호를 전송합니다.</b><div class="where"><code>components/AdminLoginCard.tsx:29</code> → <code>POST /api/admin/session</code></div></div></div>
+  <div class="step"><div class="n">2</div><div class="body"><b>bcrypt로 비교합니다.</b><div class="where"><code>app/api/admin/session/route.ts:36</code> → <code>lib/admin-password.ts:9-17</code> <code>bcrypt.compare(password, ADMIN_PASSWORD_HASH)</code></div></div></div>
+  <div class="step"><div class="n">3</div><div class="body"><b>결과를 로그로 남깁니다.</b><div class="where"><code>session/route.ts:40-56</code> 성공과 실패 모두 IP·User-Agent와 함께 <code>traffic_logs</code>에 기록합니다.</div></div></div>
+  <div class="step"><div class="n">4</div><div class="body"><b>서명 토큰을 쿠키로 발급합니다.</b><div class="where"><code>lib/admin-session.ts:86-103</code> payload는 <code>{role:"admin", exp}</code>뿐이고, 형식은 <code>base64url(payload).base64url(HMAC)</code>입니다. 쿠키 옵션은 <code>66-75</code>행에 있으며 httpOnly, SameSite=Lax, 운영 환경 Secure, 유효기간 7일입니다.</div></div></div>
+</div>
+
+<pre><code><span class="ln">93</span>  const payload = toBase64Url(
+<span class="ln">94</span>    JSON.stringify({
+<span class="ln">95</span>      role: "admin",
+<span class="ln">96</span>      exp: Date.now() + ADMIN_SESSION_DURATION_SECONDS * 1000,
+<span class="ln">97</span>    } satisfies AdminSessionPayload),
+<span class="ln">98</span>  );
+<span class="ln">99</span>  const key = await importSessionKey(secret);
+<span class="ln">100</span>  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+<span class="ln">102</span>  return `${payload}.${bytesToBase64Url(signature)}`;</code></pre>
+<p style="color:var(--muted);font-size:13px"><code>lib/admin-session.ts</code> · Buffer가 없는 Edge 런타임(미들웨어)에서도 동작하도록 <code>btoa</code>/<code>atob</code> 대체 경로(11-50행)를 함께 구현했습니다.</p>
+
+<h3>3중 방어 구조</h3>
+<table>
+  <tr><th>단계</th><th>위치</th><th>동작</th></tr>
+  <tr><td>1. 미들웨어</td><td><code>middleware.ts:30-49</code></td><td><code>/admin/*</code> 요청에서 쿠키를 검증합니다. 실패하면 <code>/admin/login?redirectTo=...</code>로 보내고, 이미 로그인한 상태로 로그인 페이지에 오면 <code>/admin/write</code>로 보냅니다.</td></tr>
+  <tr><td>2. 페이지</td><td><code>app/admin/write/page.tsx:18-22</code></td><td>서버 컴포넌트가 <code>hasAdminSessionFromCookies()</code>로 한 번 더 확인합니다.</td></tr>
+  <tr><td>3. API</td><td><code>app/api/admin/posts/route.ts:84-110</code></td><td>모든 쓰기 요청이 <code>getAuthenticatedSupabase()</code>를 거치며, 인증에 실패하면 401을 반환합니다. 통과해야만 service-role 클라이언트를 얻습니다.</td></tr>
+  <tr><td>보조</td><td><code>lib/admin-session.ts:144-154</code></td><td><code>sanitizeAdminRedirect()</code>가 <code>//evil.com</code> 같은 외부 주소로 이동하는 오픈 리다이렉트를 차단합니다.</td></tr>
+</table>
+
+<h3>글 저장과 캐시 무효화</h3>
+<div class="flow">
+  <div class="step"><div class="n">1</div><div class="body"><b>에디터가 글을 전송합니다.</b><div class="where"><code>components/AdminEditor.tsx:210</code>(생성·수정), <code>:266</code>(삭제) → <code>/api/admin/posts</code></div></div></div>
+  <div class="step"><div class="n">2</div><div class="body"><b>입력을 정규화합니다.</b><div class="where"><code>posts/route.ts:24-82</code> 길이 제한, 태그 최대 20개, <code>lib/slug.ts</code>의 <code>slugify()</code>(NFKC 정규화, 한글 허용)로 slug를 만듭니다.</div></div></div>
+  <div class="step"><div class="n">3</div><div class="body"><b>service-role 키로 DB에 씁니다.</b><div class="where"><code>posts/route.ts:153-185</code>(POST), <code>187-226</code>(PATCH), <code>228-265</code>(DELETE)</div></div></div>
+  <div class="step"><div class="n">4</div><div class="body"><b>ISR 캐시를 즉시 무효화합니다.</b><div class="where"><code>posts/route.ts:112-128</code> <code>revalidatePostPaths()</code>가 홈, 목록, 태그, 시리즈, sitemap, RSS, 해당 글 경로를 모두 무효화합니다. 그래서 5분을 기다리지 않아도 새 글이 바로 반영됩니다.</div></div></div>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-comment">6. 흐름 ③ 익명 댓글</h2>
+<p>댓글은 로그인 없이 닉네임과 비밀번호만으로 작성합니다. 수정이나 삭제를 요청하면 서버가 저장된 해시와 입력값을 비교해 본인인지 확인합니다.</p>
+
+<table>
+  <tr><th>메서드</th><th>위치</th><th>동작</th></tr>
+  <tr><td>GET</td><td><code>app/api/comments/route.ts:41-66</code></td><td><code>postId</code>(= 글 slug)로 조회합니다. <code>password</code> 컬럼은 select에서 제외합니다.</td></tr>
+  <tr><td>POST</td><td><code>:68-102</code></td><td>비밀번호를 <code>bcrypt.hash(password, 10)</code>로 해시해 저장합니다.</td></tr>
+  <tr><td>DELETE</td><td><code>:104-140</code></td><td>해시를 조회해 검증한 뒤 삭제합니다.</td></tr>
+  <tr><td>PATCH</td><td><code>:142-189</code></td><td>검증한 뒤 수정합니다. 구형 SHA-256 해시였다면 이 시점에 bcrypt로 교체합니다(172-177행).</td></tr>
+</table>
+
+<pre><code><span class="ln">31</span>async function isPasswordValid(storedPassword: string, inputPassword: string) {
+<span class="ln">32</span>  if (isBcryptHash(storedPassword)) {
+<span class="ln">33</span>    return bcrypt.compare(inputPassword, storedPassword);
+<span class="ln">34</span>  }
+<span class="ln">35</span>
+<span class="ln">36</span>  // bcrypt 도입 이전에 저장된 SHA-256 해시 또는 평문과의 하위 호환.
+<span class="ln">37</span>  const legacySha256 = createHash("sha256").update(inputPassword).digest("hex");
+<span class="ln">38</span>  return storedPassword === inputPassword || storedPassword === legacySha256;
+<span class="ln">39</span>}</code></pre>
+<p style="color:var(--muted);font-size:13px"><code>app/api/comments/route.ts</code> · 기존 댓글을 깨뜨리지 않으면서 점진적으로 해시를 강화하는 "lazy migration" 패턴입니다.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-ai">7. 흐름 ④ AI 보조 기능</h2>
+<p>관리자용과 공개용 AI가 같은 <code>lib/ai.ts</code>를 공유합니다. 두 경로 모두 Gemini에게 JSON으로만 답하라고 지시한 뒤, 응답 텍스트에서 첫 <code>{</code>부터 마지막 <code>}</code>까지 잘라 파싱합니다.</p>
+
+<table>
+  <tr><th></th><th>관리자용</th><th>공개용</th></tr>
+  <tr><td>호출 위치</td><td><code>components/AdminEditor.tsx:139</code></td><td><code>components/PostAiAssistant.tsx:45</code></td></tr>
+  <tr><td>엔드포인트</td><td><code>app/api/admin/ai/route.ts</code></td><td><code>app/api/ai/post/route.ts</code></td></tr>
+  <tr><td>작업 종류</td><td>summary · tags · seo</td><td>summary · guide</td></tr>
+  <tr><td>인증</td><td class="ok">세션 필요 (29행)</td><td class="danger">없음</td></tr>
+  <tr><td>lib 함수</td><td><code>generateAdminAi()</code> (<code>lib/ai.ts:194</code>)</td><td><code>generatePublicAi()</code> (<code>lib/ai.ts:248</code>)</td></tr>
+</table>
+
+<pre><code><span class="ln">157</span>async function generateJson&lt;T&gt;(prompt: string) {
+<span class="ln">158</span>  const model = getLanguageModel();
+<span class="ln">  </span>  ...
+<span class="ln">164</span>  const { text } = await generateText({
+<span class="ln">165</span>    model,
+<span class="ln">166</span>    temperature: 0.2,
+<span class="ln">167</span>    system: [
+<span class="ln">168</span>      "You are an assistant for a Korean developer blog.",
+<span class="ln">169</span>      "Return JSON only.",
+<span class="ln">  </span>      ...
+<span class="ln">175</span>  });
+<span class="ln">177</span>  return extractJsonObject&lt;T&gt;(text);
+<span class="ln">178</span>}</code></pre>
+<p style="color:var(--muted);font-size:13px"><code>lib/ai.ts</code> · 모델은 <code>GOOGLE_GENERATIVE_AI_MODEL</code> 환경변수로 바꿀 수 있고, 지정하지 않으면 <code>gemini-2.5-flash</code>를 사용합니다(47-61행). <code>extractContentSignals()</code>(79행)는 본문에 포함된 코드 블록의 개수와 언어를 추출해 프롬프트에 함께 넣습니다.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-obs">8. 흐름 ⑤ 트래픽 로그와 관측</h2>
+<p>관측 기능은 두 갈래입니다. 일반 방문자는 Vercel Analytics가 집계하고, 크롤러와 관리자 로그인 이벤트는 자체 테이블에 기록합니다.</p>
+
+<div class="flow">
+  <div class="step"><div class="n">1</div><div class="body"><b>User-Agent로 크롤러를 판별합니다.</b><div class="where"><code>lib/traffic-log.ts:9-14</code> Googlebot, GPTBot, ClaudeBot, Perplexity, Yeti(네이버) 등을 정규식 하나로 판별합니다.</div></div></div>
+  <div class="step"><div class="n">2</div><div class="body"><b>응답을 먼저 보내고 백그라운드에서 기록합니다.</b><div class="where"><code>middleware.ts:20-27</code> <code>event.waitUntil()</code>을 사용하므로 로그 기록이 페이지 응답 속도에 영향을 주지 않습니다.</div></div></div>
+  <div class="step"><div class="n">3</div><div class="body"><b>Supabase REST API에 직접 INSERT합니다.</b><div class="where"><code>lib/traffic-log.ts:17-43</code> Edge 런타임에서 SDK 대신 <code>fetch</code>를 사용하고, 실패하면 조용히 무시합니다.</div></div></div>
+  <div class="step"><div class="n">4</div><div class="body"><b>관리자 대시보드에서 조회합니다.</b><div class="where"><code>app/admin/stats/page.tsx:66-79</code> 크롤러 로그 100건과 로그인 로그 50건을 병렬로 조회합니다. 이 페이지만 <code>force-dynamic</code>(3행)으로 매번 새로 조회합니다.</div></div></div>
+</div>
+<p><b>현재 없는 것:</b> 서버 에러 추적, API 응답 시간, 요청 트레이스, 알림은 수집하지 않습니다. 이 영역이 Grafana나 OpenTelemetry로 보완할 수 있는 부분입니다.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flow-publish">9. 흐름 ⑥ CLI 게시 파이프라인</h2>
+<p>웹 에디터 외에도, 로컬에 있는 스터디 Markdown 파일을 터미널에서 바로 게시하는 경로가 있습니다.</p>
+<table>
+  <tr><th>명령</th><th>동작</th></tr>
+  <tr><td><code>npm run study:preview</code></td><td>frontmatter를 파싱해 게시될 내용을 미리 확인합니다(DB에 쓰지 않음).</td></tr>
+  <tr><td><code>npm run study:publish</code></td><td><code>--publish</code> 플래그와 함께 실행되어 실제로 게시합니다.</td></tr>
+  <tr><td><code>npm run test:study-pipeline</code></td><td><code>node --test</code>로 파싱과 게시 로직을 검증합니다.</td></tr>
+</table>
+<p><code>scripts/publish-study-post.mjs</code>의 <code>parseStudyPost()</code>(57행)가 Markdown을 해석하고, <code>publishPost()</code>(115행)가 같은 slug의 글이 있는지 조회한 뒤 없으면 생성하고 있으면 수정합니다. <code>fetchImplementation</code>을 인자로 받기 때문에 테스트에서 가짜 fetch를 주입할 수 있습니다. 단, 이 경로는 <code>revalidatePath</code>를 호출하지 않으므로 게시한 글은 최대 5분 뒤에 화면에 반영됩니다.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="data">10. 데이터 모델</h2>
+<div class="grid">
+  <div class="card">
+    <b>posts</b>
+    <table>
+      <tr><td><code>id</code></td><td>PK</td></tr>
+      <tr><td><code>slug</code></td><td>URL 식별자</td></tr>
+      <tr><td><code>title</code>, <code>description</code></td><td>제목, 요약</td></tr>
+      <tr><td><code>content</code></td><td>Markdown 원문</td></tr>
+      <tr><td><code>category</code>, <code>series</code></td><td>분류</td></tr>
+      <tr><td><code>tags</code></td><td>배열 또는 쉼표 문자열</td></tr>
+      <tr><td><code>thumbnail</code></td><td>이미지 URL</td></tr>
+      <tr><td><code>created_at</code></td><td>작성 시각</td></tr>
+    </table>
+    <p style="color:var(--muted);font-size:13px">타입 정의는 <code>lib/posts.ts:6-17</code>입니다. <code>updated_at</code>이 없어서 JSON-LD의 <code>dateModified</code>에도 작성 시각을 넣고 있습니다.</p>
+  </div>
+  <div class="card">
+    <b>comments</b>
+    <table>
+      <tr><td><code>id</code></td><td>PK (정수)</td></tr>
+      <tr><td><code>post_id</code></td><td>글 slug (FK 아님)</td></tr>
+      <tr><td><code>username</code></td><td>닉네임 (최대 40자)</td></tr>
+      <tr><td><code>content</code></td><td>본문 (최대 1200자)</td></tr>
+      <tr><td><code>password</code></td><td>bcrypt 해시</td></tr>
+      <tr><td><code>created_at</code></td><td>작성 시각</td></tr>
+    </table>
+    <p style="color:var(--muted);font-size:13px">글을 <code>id</code>가 아니라 <code>slug</code>로 참조하므로, slug를 바꾸면 기존 댓글과의 연결이 끊어집니다.</p>
+  </div>
+  <div class="card">
+    <b>traffic_logs</b>
+    <table>
+      <tr><td><code>id</code></td><td>identity PK</td></tr>
+      <tr><td><code>occurred_at</code></td><td>기본값 now(), 인덱스</td></tr>
+      <tr><td><code>kind</code></td><td>crawler / admin_login_*, 인덱스</td></tr>
+      <tr><td><code>path</code>, <code>user_agent</code>, <code>ip</code>, <code>detail</code></td><td>요청 정보</td></tr>
+    </table>
+    <p style="color:var(--muted);font-size:13px">스키마는 <code>scripts/sql/traffic-logs.sql</code>입니다. RLS를 켜고 정책을 만들지 않아서 service-role 키로만 접근할 수 있습니다(13-15행).</p>
+  </div>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="env">11. 환경변수와 Supabase 키 사용처</h2>
+<table>
+  <tr><th>환경변수</th><th>사용처</th><th>노출 범위</th></tr>
+  <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>모든 Supabase 접근</td><td>브라우저에도 노출됩니다.</td></tr>
+  <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td><code>lib/supabase.ts</code> → 글 조회, <b>댓글 CRUD</b></td><td>브라우저에도 노출됩니다. RLS 정책이 유일한 방어선입니다.</td></tr>
+  <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><code>lib/supabase-admin.ts</code> → 글 쓰기, 로그 조회 / <code>lib/traffic-log.ts</code> / CLI</td><td>서버 전용입니다. RLS를 무시합니다.</td></tr>
+  <tr><td><code>ADMIN_PASSWORD_HASH</code></td><td><code>lib/admin-password.ts</code></td><td>서버 전용입니다.</td></tr>
+  <tr><td><code>ADMIN_SESSION_SECRET</code></td><td><code>lib/admin-session.ts</code> HMAC 키</td><td>서버 전용입니다. 바꾸면 모든 세션이 무효화됩니다.</td></tr>
+  <tr><td><code>GOOGLE_GENERATIVE_AI_API_KEY</code>, <code>_MODEL</code></td><td><code>lib/ai.ts</code></td><td>서버 전용입니다.</td></tr>
+  <tr><td><code>SITE_URL</code></td><td><code>lib/site.ts</code> canonical·sitemap 기준 주소</td><td>서버 전용입니다.</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="issues">12. 현재 구조의 약점과 개선 방향</h2>
+<table>
+  <tr><th>심각도</th><th>내용</th><th>근거</th><th>개선 방향</th></tr>
+  <tr>
+    <td class="danger">높음</td>
+    <td>댓글 API가 <b>anon 키</b>로 비밀번호 조회·수정·삭제를 수행합니다. 이 API가 동작하려면 RLS가 anon에게 해당 권한을 허용해야 하므로, 누구든 브라우저에 노출된 anon 키로 Supabase REST를 직접 호출하면 비밀번호 검증 없이 댓글을 지우거나 해시를 읽을 수 있습니다.</td>
+    <td><code>app/api/comments/route.ts:4</code>, <code>119-133</code></td>
+    <td>쓰기와 비밀번호 조회를 <code>getSupabaseAdminClient()</code>로 옮기고, comments 테이블의 anon 권한을 SELECT(비밀번호 제외)로 제한합니다.</td>
+  </tr>
+  <tr>
+    <td class="warn">중간</td>
+    <td>공개 AI API가 인증과 호출 제한 없이 임의의 <code>content</code>를 Gemini로 전달합니다. 외부에서 무료 LLM 프록시처럼 악용할 수 있습니다.</td>
+    <td><code>app/api/ai/post/route.ts:26-46</code></td>
+    <td>slug만 받아 서버에서 본문을 조회하고, 결과를 글 단위로 캐시하며, Redis(Upstash)로 IP별 호출 횟수를 제한합니다.</td>
+  </tr>
+  <tr>
+    <td class="warn">중간</td>
+    <td>CLI로 게시하면 캐시 무효화가 일어나지 않습니다.</td>
+    <td><code>scripts/publish-study-post.mjs:115</code></td>
+    <td>revalidate 전용 API(시크릿 토큰 인증)를 만들고 CLI가 게시 후 호출하도록 합니다.</td>
+  </tr>
+  <tr>
+    <td>낮음</td>
+    <td>목록 페이지마다 전체 글을 <code>select("*")</code>로 가져오므로 본문까지 전송됩니다. 글이 많아지면 느려집니다.</td>
+    <td><code>lib/posts.ts:107-110</code></td>
+    <td>목록용 조회는 필요한 컬럼만 선택하고, 읽기 시간은 저장 시점에 계산해 컬럼으로 둡니다.</td>
+  </tr>
+  <tr>
+    <td>낮음</td>
+    <td><code>updated_at</code>이 없어 수정 시각을 SEO에 반영하지 못합니다.</td>
+    <td><code>app/blog/[slug]/page.tsx:76</code></td>
+    <td>컬럼을 추가하고 JSON-LD와 sitemap에 반영합니다(로드맵에 이미 있는 항목).</td>
+  </tr>
+  <tr>
+    <td>낮음</td>
+    <td>에러와 성능 지표를 관측할 수단이 없습니다.</td>
+    <td>프로젝트 전체</td>
+    <td><code>instrumentation.ts</code>에 OpenTelemetry를 설정해 Grafana Cloud로 전송합니다.</td>
+  </tr>
+  <tr>
+    <td>정리</td>
+    <td><code>AdminEditor.tsx</code>가 737줄로 너무 큽니다.</td>
+    <td><code>components/AdminEditor.tsx</code></td>
+    <td>폼, 미리보기, 글 목록, AI 패널로 컴포넌트를 분리합니다.</td>
+  </tr>
+</table>
+
+<div class="card">
+  <b>Spring 전환과의 연결 지점</b>
+  <p>위 구조에서 화면은 데이터를 <code>lib/posts.ts</code>와 <code>/api/*</code> 두 통로로만 받습니다. 따라서 <code>docs/SPRING-MIGRATION-PLAN.md</code>의 계획대로 Spring API 서버를 만들면, Next.js 쪽에서는 이 두 통로의 호출 대상만 바꾸면 됩니다. 그 시점에 Spring 서버를 Docker 이미지로 만들고 k3s에 배포하면서 Redis와 Prometheus·Grafana를 함께 붙이는 방식으로 인프라를 고도화할 수 있습니다.</p>
+</div>
+
+</div>
+</body>
+</html>
