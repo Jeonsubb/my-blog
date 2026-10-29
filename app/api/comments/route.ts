@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+
+// 댓글 조회는 공개 anon 키로 처리하고, 작성·수정·삭제와 비밀번호 해시 조회는
+// service-role 키로만 처리한다. anon 키에는 comments 쓰기 권한을 주지 않는다
+// (scripts/sql/comments-rls.sql 참고).
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -66,10 +71,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
-    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
+    return errorResponse("댓글 기능을 사용하려면 SUPABASE_SERVICE_ROLE_KEY가 필요합니다.", 503);
   }
 
   const body = await request.json();
@@ -102,10 +107,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
-    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
+    return errorResponse("댓글 기능을 사용하려면 SUPABASE_SERVICE_ROLE_KEY가 필요합니다.", 503);
   }
 
   const body = await request.json();
@@ -140,10 +145,10 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
-    return errorResponse("댓글 기능을 사용하려면 Supabase 환경 변수가 필요합니다.", 503);
+    return errorResponse("댓글 기능을 사용하려면 SUPABASE_SERVICE_ROLE_KEY가 필요합니다.", 503);
   }
 
   const body = await request.json();

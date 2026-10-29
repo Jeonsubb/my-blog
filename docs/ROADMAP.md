@@ -28,6 +28,7 @@
 - [ ] Supabase SQL Editor에서 `scripts/sql/traffic-logs.sql` 실행 (로그 테이블 생성)
 - [ ] Vercel 대시보드 Analytics 탭에서 수집 활성화
 - [ ] Google Search Console에 sitemap 재제출
+- [ ] Supabase SQL Editor에서 `scripts/sql/comments-rls.sql` 실행 (댓글 테이블 anon 권한 제한)
 
 ## 3. 예정된 작업
 
@@ -37,6 +38,7 @@
 
 ### 보안 강화
 - [x] 댓글 비밀번호 해시를 SHA-256에서 bcrypt로 강화 (2026-10-02)
+- [x] 댓글 작성·수정·삭제를 service-role 키로 이전하고, anon 권한을 회수하는 SQL 추가 (2026-10-29)
 - [ ] 공개 AI API(`/api/ai/post`)에 호출 횟수 제한 도입
 
 ### 백엔드 전환 (장기)
