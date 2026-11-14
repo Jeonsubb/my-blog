@@ -78,7 +78,7 @@
 <div class="wrap">
 
 <h1>my-blog 아키텍처 해설</h1>
-<p class="sub">2026-10-18 기준 · <code>main</code> 브랜치(커밋 <code>a11502f</code>)의 코드를 직접 읽고 작성했습니다. 줄 번호는 이 시점의 파일 기준입니다.</p>
+<p class="sub">2026-10-18 작성(커밋 <code>a11502f</code> 기준) · 2026-11-14 댓글 보안 수정(커밋 <code>e0aa223</code>) 반영. 줄 번호는 반영 시점의 파일 기준입니다.</p>
 
 <nav class="toc">
   <ol>
@@ -271,7 +271,7 @@
   <tr><td><code>app/sitemap.ts</code>, <code>app/robots.ts</code>, <code>app/feed.xml/route.ts</code></td><td>52 + 15 + 53</td><td>SEO와 RSS를 담당합니다.</td></tr>
   <tr><td><code>app/admin/{login,write,stats}</code></td><td>34 + 56 + 188</td><td>관리자 로그인, 글 에디터, 로그 대시보드입니다.</td></tr>
   <tr><td rowspan="5"><span class="tag">API</span></td><td><code>app/api/admin/posts/route.ts</code></td><td>265</td><td>글 생성·수정·삭제와 ISR 캐시 무효화를 수행합니다.</td></tr>
-  <tr><td><code>app/api/comments/route.ts</code></td><td>189</td><td>익명 댓글 CRUD와 bcrypt 비밀번호 검증을 수행합니다.</td></tr>
+  <tr><td><code>app/api/comments/route.ts</code></td><td>194</td><td>익명 댓글 CRUD와 bcrypt 비밀번호 검증을 수행합니다. 조회는 anon 키, 쓰기는 service-role 키로 처리합니다.</td></tr>
   <tr><td><code>app/api/admin/session/route.ts</code></td><td>95</td><td>로그인(쿠키 발급), 로그아웃(쿠키 삭제), 로그인 이벤트 기록을 담당합니다.</td></tr>
   <tr><td><code>app/api/admin/ai/route.ts</code></td><td>71</td><td>관리자용 AI(요약·태그·SEO)입니다. 세션이 필요합니다.</td></tr>
   <tr><td><code>app/api/ai/post/route.ts</code></td><td>57</td><td>공개용 AI(3줄 요약·읽기 가이드)입니다. 인증이 없습니다.</td></tr>
@@ -356,25 +356,25 @@
 
 <!-- ───────────────────────────────────────────── -->
 <h2 id="flow-comment">6. 흐름 ③ 익명 댓글</h2>
-<p>댓글은 로그인 없이 닉네임과 비밀번호만으로 작성합니다. 수정이나 삭제를 요청하면 서버가 저장된 해시와 입력값을 비교해 본인인지 확인합니다.</p>
+<p>댓글은 로그인 없이 닉네임과 비밀번호만으로 작성합니다. 수정이나 삭제를 요청하면 서버가 저장된 해시와 입력값을 비교해 본인인지 확인합니다. 조회(GET)만 anon 키를 쓰고, 작성·수정·삭제와 비밀번호 해시 조회는 service-role 키로 처리합니다. anon 키의 쓰기 권한과 <code>password</code> 컬럼 조회 권한은 <code>scripts/sql/comments-rls.sql</code>로 회수합니다.</p>
 
 <table>
   <tr><th>메서드</th><th>위치</th><th>동작</th></tr>
-  <tr><td>GET</td><td><code>app/api/comments/route.ts:41-66</code></td><td><code>postId</code>(= 글 slug)로 조회합니다. <code>password</code> 컬럼은 select에서 제외합니다.</td></tr>
-  <tr><td>POST</td><td><code>:68-102</code></td><td>비밀번호를 <code>bcrypt.hash(password, 10)</code>로 해시해 저장합니다.</td></tr>
-  <tr><td>DELETE</td><td><code>:104-140</code></td><td>해시를 조회해 검증한 뒤 삭제합니다.</td></tr>
-  <tr><td>PATCH</td><td><code>:142-189</code></td><td>검증한 뒤 수정합니다. 구형 SHA-256 해시였다면 이 시점에 bcrypt로 교체합니다(172-177행).</td></tr>
+  <tr><td>GET</td><td><code>app/api/comments/route.ts:46-71</code></td><td>anon 키로 <code>postId</code>(= 글 slug)를 조회합니다. <code>password</code> 컬럼은 select에서 제외합니다.</td></tr>
+  <tr><td>POST</td><td><code>:73-107</code></td><td>service-role 키를 사용합니다. 비밀번호를 <code>bcrypt.hash(password, 10)</code>로 해시해 저장합니다.</td></tr>
+  <tr><td>DELETE</td><td><code>:109-145</code></td><td>service-role 키로 해시를 조회해 검증한 뒤 삭제합니다.</td></tr>
+  <tr><td>PATCH</td><td><code>:147-194</code></td><td>service-role 키로 검증한 뒤 수정합니다. 구형 SHA-256 해시였다면 이 시점에 bcrypt로 교체합니다(177-182행).</td></tr>
 </table>
 
-<pre><code><span class="ln">31</span>async function isPasswordValid(storedPassword: string, inputPassword: string) {
-<span class="ln">32</span>  if (isBcryptHash(storedPassword)) {
-<span class="ln">33</span>    return bcrypt.compare(inputPassword, storedPassword);
-<span class="ln">34</span>  }
-<span class="ln">35</span>
-<span class="ln">36</span>  // bcrypt 도입 이전에 저장된 SHA-256 해시 또는 평문과의 하위 호환.
-<span class="ln">37</span>  const legacySha256 = createHash("sha256").update(inputPassword).digest("hex");
-<span class="ln">38</span>  return storedPassword === inputPassword || storedPassword === legacySha256;
-<span class="ln">39</span>}</code></pre>
+<pre><code><span class="ln">36</span>async function isPasswordValid(storedPassword: string, inputPassword: string) {
+<span class="ln">37</span>  if (isBcryptHash(storedPassword)) {
+<span class="ln">38</span>    return bcrypt.compare(inputPassword, storedPassword);
+<span class="ln">39</span>  }
+<span class="ln">40</span>
+<span class="ln">41</span>  // bcrypt 도입 이전에 저장된 SHA-256 해시 또는 평문과의 하위 호환.
+<span class="ln">42</span>  const legacySha256 = createHash("sha256").update(inputPassword).digest("hex");
+<span class="ln">43</span>  return storedPassword === inputPassword || storedPassword === legacySha256;
+<span class="ln">44</span>}</code></pre>
 <p style="color:var(--muted);font-size:13px"><code>app/api/comments/route.ts</code> · 기존 댓글을 깨뜨리지 않으면서 점진적으로 해시를 강화하는 "lazy migration" 패턴입니다.</p>
 
 <!-- ───────────────────────────────────────────── -->
@@ -474,8 +474,8 @@
 <table>
   <tr><th>환경변수</th><th>사용처</th><th>노출 범위</th></tr>
   <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>모든 Supabase 접근</td><td>브라우저에도 노출됩니다.</td></tr>
-  <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td><code>lib/supabase.ts</code> → 글 조회, <b>댓글 CRUD</b></td><td>브라우저에도 노출됩니다. RLS 정책이 유일한 방어선입니다.</td></tr>
-  <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><code>lib/supabase-admin.ts</code> → 글 쓰기, 로그 조회 / <code>lib/traffic-log.ts</code> / CLI</td><td>서버 전용입니다. RLS를 무시합니다.</td></tr>
+  <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td><code>lib/supabase.ts</code> → 글 조회, 댓글 조회</td><td>브라우저에도 노출됩니다. RLS 정책과 테이블 권한이 방어선입니다.</td></tr>
+  <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><code>lib/supabase-admin.ts</code> → 글 쓰기, 댓글 쓰기, 로그 조회 / <code>lib/traffic-log.ts</code> / CLI</td><td>서버 전용입니다. RLS를 무시합니다.</td></tr>
   <tr><td><code>ADMIN_PASSWORD_HASH</code></td><td><code>lib/admin-password.ts</code></td><td>서버 전용입니다.</td></tr>
   <tr><td><code>ADMIN_SESSION_SECRET</code></td><td><code>lib/admin-session.ts</code> HMAC 키</td><td>서버 전용입니다. 바꾸면 모든 세션이 무효화됩니다.</td></tr>
   <tr><td><code>GOOGLE_GENERATIVE_AI_API_KEY</code>, <code>_MODEL</code></td><td><code>lib/ai.ts</code></td><td>서버 전용입니다.</td></tr>
@@ -487,10 +487,10 @@
 <table>
   <tr><th>심각도</th><th>내용</th><th>근거</th><th>개선 방향</th></tr>
   <tr>
-    <td class="danger">높음</td>
-    <td>댓글 API가 <b>anon 키</b>로 비밀번호 조회·수정·삭제를 수행합니다. 이 API가 동작하려면 RLS가 anon에게 해당 권한을 허용해야 하므로, 누구든 브라우저에 노출된 anon 키로 Supabase REST를 직접 호출하면 비밀번호 검증 없이 댓글을 지우거나 해시를 읽을 수 있습니다.</td>
-    <td><code>app/api/comments/route.ts:4</code>, <code>119-133</code></td>
-    <td>쓰기와 비밀번호 조회를 <code>getSupabaseAdminClient()</code>로 옮기고, comments 테이블의 anon 권한을 SELECT(비밀번호 제외)로 제한합니다.</td>
+    <td class="ok">해결</td>
+    <td>댓글 API가 <b>anon 키</b>로 비밀번호 조회·수정·삭제를 수행해서, 누구든 브라우저에 노출된 anon 키로 Supabase REST를 직접 호출하면 비밀번호 검증 없이 댓글을 지우거나 해시를 읽을 수 있었습니다.</td>
+    <td>커밋 <code>e0aa223</code></td>
+    <td>쓰기와 비밀번호 조회를 <code>getSupabaseAdminClient()</code>로 옮겼습니다. Supabase에서 <code>scripts/sql/comments-rls.sql</code>을 실행해야 anon 권한 회수까지 완료됩니다.</td>
   </tr>
   <tr>
     <td class="warn">중간</td>
