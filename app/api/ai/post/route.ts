@@ -5,10 +5,13 @@ import {
   isAiConfigured,
   type PublicAiTask,
 } from "@/lib/ai";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 const PUBLIC_AI_TASKS: PublicAiTask[] = ["summary", "guide"];
+const AI_RATE_LIMIT = 10;
+const AI_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 function normalizeText(value: unknown, maxLength: number) {
   if (typeof value !== "string") {
@@ -21,6 +24,22 @@ function normalizeText(value: unknown, maxLength: number) {
 export async function POST(request: NextRequest) {
   if (!isAiConfigured) {
     return NextResponse.json({ error: "AI 기능이 설정되지 않았습니다." }, { status: 503 });
+  }
+
+  const rateLimit = checkRateLimit(
+    `ai-post:${getClientIp(request.headers)}`,
+    AI_RATE_LIMIT,
+    AI_RATE_LIMIT_WINDOW_MS,
+  );
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "AI 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+      },
+    );
   }
 
   const body = await request.json();
