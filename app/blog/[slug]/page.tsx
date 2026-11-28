@@ -158,9 +158,7 @@ export default async function BlogPost({ params }: Props) {
 
       <PostAiAssistant
         isAiEnabled={isAiConfigured}
-        title={post.title}
-        description={post.description}
-        content={post.content || ""}
+        slug={post.slug}
       />
 
       <section>

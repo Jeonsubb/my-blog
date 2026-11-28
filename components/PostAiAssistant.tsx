@@ -5,9 +5,7 @@ import type { ContentSignals } from "@/lib/ai";
 
 type Props = {
   isAiEnabled: boolean;
-  title: string;
-  description: string;
-  content: string;
+  slug: string;
 };
 
 type AiTask = "summary" | "guide";
@@ -22,9 +20,7 @@ type AiResultState = {
 
 export default function PostAiAssistant({
   isAiEnabled,
-  title,
-  description,
-  content,
+  slug,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<AiTask | null>(null);
@@ -49,9 +45,7 @@ export default function PostAiAssistant({
         },
         body: JSON.stringify({
           task,
-          title,
-          description,
-          content,
+          slug,
         }),
       });
 
